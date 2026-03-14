@@ -93,6 +93,7 @@ func TestRenderTableHeader(t *testing.T) {
 	out := ui.RenderTableHeader(80, 4)
 
 	mustContain(t, out, "POS column", "POS")
+	mustContain(t, out, "CHG column", "CHG")
 	mustContain(t, out, "PLAYER column", "PLAYER")
 	mustContain(t, out, "CTRY column", "CTRY")
 	mustContain(t, out, "TOT column", "TOT")
@@ -122,7 +123,7 @@ func TestRenderPlayerRowLeader(t *testing.T) {
 		Rounds: makeRounds(69, 63, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	mustContain(t, out, "position", "1")
 	mustContain(t, out, "name", "Ludvig")
@@ -141,7 +142,7 @@ func TestRenderPlayerRowTied(t *testing.T) {
 		Rounds: makeRounds(69, 67, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	mustContain(t, out, "tied position", "T4")
 }
@@ -154,7 +155,7 @@ func TestRenderPlayerRowSelectedFavorite(t *testing.T) {
 		Rounds: makeRounds(69, 63, 0, 0),
 	}
 
-	out := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, false, true, true))
+	out := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", true, true))
 
 	mustContain(t, out, "selection and favorite marker", ">*")
 }
@@ -167,7 +168,7 @@ func TestRenderPlayerRowNotTied(t *testing.T) {
 		Rounds: makeRounds(68, 67, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	// Should show "3" not "T3"
 	mustNotContain(t, out, "no T prefix", "T3")
@@ -182,7 +183,7 @@ func TestRenderPlayerRowCUT(t *testing.T) {
 		Rounds: makeRounds(77, 70, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, 0, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, 0, false, "", false, false)
 
 	mustContain(t, out, "CUT status", "CUT")
 	mustContain(t, out, "over par score", "+3")
@@ -197,7 +198,7 @@ func TestRenderPlayerRowWD(t *testing.T) {
 		Rounds: makeRounds(0, 0, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	mustContain(t, out, "WD status", "WD")
 	mustContain(t, out, "name", "Collin Morikawa")
@@ -211,7 +212,7 @@ func TestRenderPlayerRowEvenPar(t *testing.T) {
 		Rounds: makeRounds(72, 72, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	mustContain(t, out, "even par", "E")
 }
@@ -224,7 +225,7 @@ func TestRenderPlayerRowOverPar(t *testing.T) {
 		Rounds: makeRounds(77, 72, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	mustContain(t, out, "over par score", "+5")
 }
@@ -237,7 +238,7 @@ func TestRenderPlayerRowLongNameTruncation(t *testing.T) {
 		Rounds: makeRounds(67, 0, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	// Should not panic, and should contain some truncated version
 	if out == "" {
@@ -258,7 +259,7 @@ func TestRenderPlayerRowUnplayedRounds(t *testing.T) {
 		Rounds: makeRounds(69, 0, 0, 0), // only R1 played
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	mustContain(t, out, "R1 strokes", "69")
 	// Unplayed rounds should show "-"
@@ -278,7 +279,7 @@ func TestRenderPlayerRowEmptyCountry(t *testing.T) {
 		Rounds: makeRounds(67, 0, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "", false, false)
 
 	// Should show "---" for empty country
 	mustContain(t, out, "empty country", "---")
@@ -314,10 +315,10 @@ func TestRenderPlayerRowUnicodeAlignment(t *testing.T) {
 		Rounds: makeRounds(70, 0, 0, 0),
 	}
 
-	asciiRow := stripANSI(ui.RenderPlayerRow(ascii, 0, 80, 4, -1, false, false, false))
-	row1 := stripANSI(ui.RenderPlayerRow(unicode1, 1, 80, 4, -1, false, false, false))
-	row2 := stripANSI(ui.RenderPlayerRow(unicode2, 2, 80, 4, -1, false, false, false))
-	row3 := stripANSI(ui.RenderPlayerRow(unicode3, 3, 80, 4, -1, false, false, false))
+	asciiRow := stripANSI(ui.RenderPlayerRow(ascii, 0, 80, 4, -1, false, "", false, false))
+	row1 := stripANSI(ui.RenderPlayerRow(unicode1, 1, 80, 4, -1, false, "", false, false))
+	row2 := stripANSI(ui.RenderPlayerRow(unicode2, 2, 80, 4, -1, false, "", false, false))
+	row3 := stripANSI(ui.RenderPlayerRow(unicode3, 3, 80, 4, -1, false, "", false, false))
 
 	// Find the display column (not byte offset) of the country code.
 	// We need to measure display width up to the match, not byte offset,
@@ -443,7 +444,7 @@ func TestRenderPlayerRowToParMode(t *testing.T) {
 		},
 	}
 
-	out := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, true, false, false))
+	out := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, true, "", false, false))
 	mustContain(t, out, "round one to par", "-5")
 	mustContain(t, out, "round two to par", "E")
 	mustContain(t, out, "round three to par", "+2")
@@ -451,6 +452,23 @@ func TestRenderPlayerRowToParMode(t *testing.T) {
 	if strings.Count(out, "-") < 2 {
 		t.Fatalf("expected to-par mode to keep visible dashes, got %q", out)
 	}
+}
+
+func TestRenderPlayerRowMovementIndicators(t *testing.T) {
+	player := espn.Player{
+		ID: "move", CanonicalRank: 4, DisplayPosition: 4,
+		Name: "Mover", CountryCode: "usa",
+		TotalScore: "-7", Thru: "F",
+		Rounds: makeRounds(69, 68, 0, 0),
+	}
+
+	up := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "+2", false, false))
+	down := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "-3", false, false))
+	even := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, false, "E", false, false))
+
+	mustContain(t, up, "up indicator", "^2")
+	mustContain(t, down, "down indicator", "˅3")
+	mustContain(t, even, "even indicator", "E")
 }
 
 func TestRenderHelpPanelNormalMode(t *testing.T) {

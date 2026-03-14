@@ -50,6 +50,9 @@ type Styles struct {
 	// Columns
 	Marker         lipgloss.Style
 	Position       lipgloss.Style
+	ChangeUp       lipgloss.Style
+	ChangeDown     lipgloss.Style
+	ChangeNeutral  lipgloss.Style
 	PlayerName     lipgloss.Style
 	FavoritePlayer lipgloss.Style
 	Country        lipgloss.Style
@@ -125,6 +128,17 @@ func DefaultStyles() Styles {
 			Bold(true),
 
 		Position: lipgloss.NewStyle().
+			Foreground(colorDimGray),
+
+		ChangeUp: lipgloss.NewStyle().
+			Foreground(colorGreen).
+			Bold(true),
+
+		ChangeDown: lipgloss.NewStyle().
+			Foreground(colorRed).
+			Bold(true),
+
+		ChangeNeutral: lipgloss.NewStyle().
 			Foreground(colorDimGray),
 
 		PlayerName: lipgloss.NewStyle().

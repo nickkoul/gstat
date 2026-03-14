@@ -6,14 +6,14 @@ Live golf tournament leaderboard in your terminal.
  THE PLAYERS Championship                    Round 2 - Play Complete
  Mar 12, 2026 - Mar 15, 2026
  ─────────────────────────────────────────────────────────────────────
-     POS   PLAYER                   CTRY    TOT   R1   R2   R3   R4  THRU
- ────────────────────────────────────────────────────────────────────────
- >   1     Ludvig Åberg             SWE    -12   69   63    -    -     F
-     T2    Xander Schauffele        USA    -10   69   65    -    -     F
-  *  T2    Scottie Scheffler        USA    -10   67   67    -    -     F
-      4    Cameron Young            USA     -9   68   67    -    -     F
-     T5    Corey Conners            CAN     -8   69   67    -    -    12
-     T5    Justin Thomas            USA     -8   68   68    -    -     F
+    POS   CHG  PLAYER                   CTRY    TOT   R1   R2   R3   R4  THRU
+ ─────────────────────────────────────────────────────────────────────────────
+>   1     ^1   Ludvig Åberg             SWE    -12   69   63    -    -     F
+    T2    ˅1   Xander Schauffele        USA    -10   69   65    -    -     F
+ *  T2    E    Scottie Scheffler        USA    -10   67   67    -    -     F
+      4    ^3   Cameron Young           USA     -9   68   67    -    -     F
+    T5    E    Corey Conners            CAN     -8   69   67    -    -    12
+    T5    ˅2   Justin Thomas            USA     -8   68   68    -    -     F
  ──────────────────────────── CUT ────────────────────────────────
      CUT   Adam Schenk              USA     +3   77   70    -    -     F
 
@@ -46,6 +46,7 @@ go build -o gstat .
 - Vim-style player search with `/`
 - Round columns default to to-par; press `t` to toggle strokes view
 - Select rows with vim-style navigation, bold favorites with `f`, toggle a favorites-only view with `F`, and keep favorites across restarts
+- `CHG` shows position diff versus the previous round as `^n`, `˅n`, or `E`
 - Toggle an expanded hotkey help panel with `?`
 - Scrollable with vim-style keybindings
 

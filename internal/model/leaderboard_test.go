@@ -170,6 +170,95 @@ func TestDataFetchedPreservesActiveFilter(t *testing.T) {
 	}
 }
 
+func TestDataFetchedDoesNotShowChangeInRoundOne(t *testing.T) {
+	m := New()
+
+	updated, _ := m.Update(DataFetchedMsg{
+		Tournament: &espn.Tournament{
+			Round: 1,
+			Players: []espn.Player{
+				{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-5", Thru: "12", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-5"}}},
+				{ID: "rory", CanonicalRank: 2, DisplayPosition: 2, Name: "Rory McIlroy", TotalScore: "-4", Thru: "12", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-4"}}},
+			},
+		},
+		FetchedAt: time.Now(),
+	})
+	next := updated.(Model)
+
+	if got := next.changeFor("scottie"); got != playerChangeNone {
+		t.Fatalf("change = %q, want none in round one", got)
+	}
+	if got := next.changeFor("rory"); got != playerChangeNone {
+		t.Fatalf("change = %q, want none in round one", got)
+	}
+}
+
+func TestDataFetchedComputesRoundChangeFromPreviousRound(t *testing.T) {
+	m := New()
+	tournament := &espn.Tournament{Round: 2, Players: []espn.Player{
+		{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-9", Thru: "F", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-5"}, {Round: 2, Played: true, ToPar: "-4"}}},
+		{ID: "rory", CanonicalRank: 2, DisplayPosition: 2, Name: "Rory McIlroy", TotalScore: "-8", Thru: "F", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-6"}, {Round: 2, Played: true, ToPar: "-2"}}},
+		{ID: "xander", CanonicalRank: 3, DisplayPosition: 3, Name: "Xander Schauffele", TotalScore: "-7", Thru: "F", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-4"}, {Round: 2, Played: true, ToPar: "-3"}}},
+	}}
+
+	updated, _ := m.Update(DataFetchedMsg{Tournament: tournament, FetchedAt: time.Now()})
+	next := updated.(Model)
+
+	if got := next.changeFor("scottie"); got != "+1" {
+		t.Fatalf("scottie change = %q, want +1", got)
+	}
+	if got := next.changeFor("rory"); got != "-1" {
+		t.Fatalf("rory change = %q, want -1", got)
+	}
+	if got := next.changeFor("xander"); got != playerChangeEven {
+		t.Fatalf("xander change = %q, want %q", got, playerChangeEven)
+	}
+}
+
+func TestDataFetchedSuppressesTieGroupNoise(t *testing.T) {
+	m := New()
+	tournament := &espn.Tournament{Round: 2, Players: []espn.Player{
+		{ID: "rory", CanonicalRank: 1, DisplayPosition: 1, Tied: true, Name: "Rory McIlroy", TotalScore: "-8", Thru: "F", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-8"}, {Round: 2, Played: true, ToPar: "E"}}},
+		{ID: "xander", CanonicalRank: 2, DisplayPosition: 1, Tied: true, Name: "Xander Schauffele", TotalScore: "-8", Thru: "F", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-8"}, {Round: 2, Played: true, ToPar: "E"}}},
+	}}
+
+	updated, _ := m.Update(DataFetchedMsg{Tournament: tournament, FetchedAt: time.Now()})
+	next := updated.(Model)
+
+	if got := next.changeFor("rory"); got != playerChangeEven {
+		t.Fatalf("rory change = %q, want E for same tied standing", got)
+	}
+	if got := next.changeFor("xander"); got != playerChangeEven {
+		t.Fatalf("xander change = %q, want E for same tied standing", got)
+	}
+}
+
+func TestDataFetchedChangeUsesRoundStandingNotVisibleFilters(t *testing.T) {
+	m := New()
+	m.favoritesOnly = true
+	m.filterQuery = "r"
+	m.favorites["rory"] = true
+	tournament := &espn.Tournament{Round: 2, Players: []espn.Player{
+		{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-9", Thru: "F", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-5"}, {Round: 2, Played: true, ToPar: "-4"}}},
+		{ID: "rory", CanonicalRank: 2, DisplayPosition: 2, Name: "Rory McIlroy", TotalScore: "-8", Thru: "F", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-6"}, {Round: 2, Played: true, ToPar: "-2"}}},
+		{ID: "xander", CanonicalRank: 3, DisplayPosition: 3, Name: "Xander Schauffele", TotalScore: "-7", Thru: "F", Rounds: []espn.RoundScore{{Round: 1, Played: true, ToPar: "-4"}, {Round: 2, Played: true, ToPar: "-3"}}},
+	}}
+
+	updated, _ := m.Update(DataFetchedMsg{Tournament: tournament, FetchedAt: time.Now()})
+	next := updated.(Model)
+
+	visible := next.visiblePlayers()
+	if len(visible) != 1 || visible[0].ID != "rory" {
+		t.Fatalf("visible players = %+v, want Rory only", visible)
+	}
+	if got := next.changeFor("rory"); got != "-1" {
+		t.Fatalf("rory change = %q, want -1 even in favorites-only filtered view", got)
+	}
+	if got := next.changeFor("scottie"); got != "+1" {
+		t.Fatalf("scottie change = %q, want +1 based on round standings", got)
+	}
+}
+
 func TestDataFetchedSelectsFirstVisiblePlayer(t *testing.T) {
 	m := New()
 	m.height = 20

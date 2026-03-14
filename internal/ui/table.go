@@ -12,6 +12,7 @@ import (
 const (
 	colMarker = 2
 	colPos    = 5
+	colChange = 4
 	colName   = 24
 	colCtry   = 5
 	colScore  = 6
@@ -39,6 +40,7 @@ func RenderTableHeader(width int, totalRounds int) string {
 
 	marker := padRight("", colMarker)
 	pos := padRight("POS", colPos)
+	change := padRight("CHG", colChange)
 	name := padRight("PLAYER", colName)
 	ctry := padRight("CTRY", colCtry)
 	score := padLeft("TOT", colScore)
@@ -50,8 +52,8 @@ func RenderTableHeader(width int, totalRounds int) string {
 
 	thru := padLeft("THRU", colThru)
 
-	header := fmt.Sprintf("%s %s %s %s %s%s %s",
-		marker, pos, name, ctry, score, rounds, thru)
+	header := fmt.Sprintf("%s %s %s %s %s %s%s %s",
+		marker, pos, change, name, ctry, score, rounds, thru)
 
 	// Trim or pad to width
 	headerStyled := s.TableHeader.Width(width).Render(header)
@@ -59,7 +61,7 @@ func RenderTableHeader(width int, totalRounds int) string {
 }
 
 // RenderPlayerRow renders a single player row in the leaderboard.
-func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLine int, showRoundScoresToPar bool, selected bool, favorite bool) string {
+func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLine int, showRoundScoresToPar bool, movement string, selected bool, favorite bool) string {
 	s := DefaultStyles()
 
 	marker := s.Marker.Render(padRight(formatMarker(selected, favorite), colMarker))
@@ -68,6 +70,7 @@ func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLi
 	posStr := formatPosition(p)
 	pos := padRight(posStr, colPos)
 	posStyled := s.Position.Render(pos)
+	changeStyled := renderMovementIndicator(movement, s)
 
 	// Player name - dim if cut/wd
 	nameStr := truncate(p.Name, colName-1)
@@ -115,8 +118,8 @@ func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLi
 		thruStyled = s.Thru.Render(thruStr)
 	}
 
-	row := fmt.Sprintf("%s %s %s %s %s%s %s",
-		marker, posStyled, nameStyled, ctryStyled, scoreStyled, roundsStyled, thruStyled)
+	row := fmt.Sprintf("%s %s %s %s %s %s%s %s",
+		marker, posStyled, changeStyled, nameStyled, ctryStyled, scoreStyled, roundsStyled, thruStyled)
 	if selected {
 		return s.SelectedRow.Width(width).Render(row)
 	}
@@ -171,6 +174,25 @@ func renderRoundScore(round espn.RoundScore, showToPar bool, s Styles) string {
 	}
 
 	return s.RoundScore.Render(padLeft(fmt.Sprintf("%d", round.Strokes), colRound))
+}
+
+func renderMovementIndicator(movement string, s Styles) string {
+	indicator := padRight("", colChange)
+
+	switch movement {
+	case "":
+		return s.ChangeNeutral.Render(indicator)
+	case "E":
+		return s.ChangeNeutral.Render(padRight(movement, colChange))
+	default:
+		if strings.HasPrefix(movement, "+") {
+			return s.ChangeUp.Render(padRight("^"+strings.TrimPrefix(movement, "+"), colChange))
+		}
+		if strings.HasPrefix(movement, "-") {
+			return s.ChangeDown.Render(padRight("˅"+strings.TrimPrefix(movement, "-"), colChange))
+		}
+		return s.ChangeNeutral.Render(padRight(movement, colChange))
+	}
 }
 
 // formatPosition formats the position with tie indicator.

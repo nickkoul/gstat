@@ -272,26 +272,33 @@ Completion notes:
 - UI behavior: corrupted or unreadable favorites config no longer blocks the app; persistence failures stay non-fatal and surface in the status bar while in-memory favorites continue working
 - Follow-up: Feature 7 can reuse the same stable player IDs and refresh lifecycle without touching favorites persistence
 
-### Feature 7 - Leaderboard change arrows
+### Feature 7 - Leaderboard change arrows [COMPLETE]
 
-- Status: planned
+- Status: complete (Mar 14, 2026)
 - Goal: show when a player has moved up, down, or is newly tracked since the previous refresh
 - Dependencies: Feature 4
 
 Checklist:
 
-- [ ] Store previous refresh snapshot keyed by stable player ID
-- [ ] Compute movement metadata on each successful refresh
-- [ ] Compare canonical rank, not filtered/pinned display order
-- [ ] Render up/down/new indicators in the table
-- [ ] Handle first load and missing previous data cleanly
-- [ ] Add tests for up/down/same/new cases
+- [x] Store previous refresh snapshot keyed by stable player ID
+- [x] Compute movement metadata on each successful refresh
+- [x] Compare canonical rank, not filtered/pinned display order
+- [x] Render up/down/new indicators in the table
+- [x] Handle first load and missing previous data cleanly
+- [x] Add tests for up/down/same/new cases
 
 Acceptance criteria:
 
 - Arrows only appear after at least one refresh
 - Filtering/pinning does not affect movement calculation
 - Tie groups do not create noisy false signals
+
+Completion notes:
+
+- Files touched: `internal/model/leaderboard.go`, `internal/model/leaderboard_test.go`, `internal/ui/table.go`, `internal/ui/styles.go`, `internal/ui/render_test.go`, `README.md`, `ROADMAP.md`
+- Tests run: `go test ./internal/model ./internal/ui`, `go test ./...`
+- Behavior: the leaderboard now fills the `CHG` column from round-over-round standing changes, comparing each player's current display position to the reconstructed leaderboard at the end of the previous round and rendering `^n`, `˅n`, or `E`
+- Follow-up: Feature 8 can build on this same previous-round reconstruction or add separate refresh-to-refresh state if transient live-update highlighting needs a shorter baseline
 
 ### Feature 8 - Visual indication for player score/standing updates
 

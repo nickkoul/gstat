@@ -2,6 +2,8 @@ package model
 
 import (
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,9 +20,14 @@ const (
 
 type roundScoreDisplayMode string
 
+type playerChange string
+
 const (
 	roundScoreDisplayStrokes roundScoreDisplayMode = "strokes"
 	roundScoreDisplayToPar   roundScoreDisplayMode = "to par"
+
+	playerChangeNone playerChange = ""
+	playerChangeEven playerChange = "E"
 )
 
 // Model is the main Bubble Tea model for the leaderboard view.
@@ -32,6 +39,7 @@ type Model struct {
 	lastUpdate     time.Time
 	lastError      string
 	favoritesErr   string
+	changes        map[string]playerChange
 
 	// UI state
 	width         int
@@ -91,6 +99,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKey(msg)
 
 	case DataFetchedMsg:
+		m.changes = computeRoundChanges(msg.Tournament)
 		m.tournament = msg.Tournament
 		m.lastUpdate = msg.FetchedAt
 		m.lastError = ""
@@ -258,6 +267,7 @@ func (m Model) renderLeaderboard() string {
 			totalRounds,
 			cutLine,
 			m.roundMode == roundScoreDisplayToPar,
+			string(m.changeFor(p.ID)),
 			p.ID == m.selectedID,
 			m.isFavorite(p.ID),
 		)
@@ -440,6 +450,13 @@ func (m Model) isFavorite(playerID string) bool {
 	return m.favorites[playerID]
 }
 
+func (m Model) changeFor(playerID string) playerChange {
+	if len(m.changes) == 0 {
+		return playerChangeNone
+	}
+	return m.changes[playerID]
+}
+
 func filterPlayers(players []espn.Player, query string) []espn.Player {
 	query = strings.TrimSpace(strings.ToLower(query))
 	if query == "" {
@@ -481,6 +498,132 @@ func copyFavorites(favorites map[string]bool) map[string]bool {
 		}
 	}
 	return copy
+}
+
+func computeRoundChanges(tournament *espn.Tournament) map[string]playerChange {
+	if tournament == nil || len(tournament.Players) == 0 || tournament.Round <= 1 {
+		return nil
+	}
+
+	previousPositions := previousRoundPositions(tournament)
+	if len(previousPositions) == 0 {
+		return nil
+	}
+
+	changes := make(map[string]playerChange, len(tournament.Players))
+
+	for _, p := range tournament.Players {
+		if p.Status != "" {
+			continue
+		}
+		previousPosition, ok := previousPositions[p.ID]
+		if !ok || p.DisplayPosition <= 0 {
+			continue
+		}
+
+		diff := previousPosition - p.DisplayPosition
+		switch {
+		case diff > 0:
+			changes[p.ID] = playerChange(fmt.Sprintf("+%d", diff))
+		case diff < 0:
+			changes[p.ID] = playerChange(fmt.Sprintf("%d", diff))
+		default:
+			changes[p.ID] = playerChangeEven
+		}
+	}
+
+	return changes
+}
+
+type roundStanding struct {
+	ID            string
+	PreviousTotal int
+	CurrentRank   int
+}
+
+func previousRoundPositions(tournament *espn.Tournament) map[string]int {
+	standings := make([]roundStanding, 0, len(tournament.Players))
+	for _, p := range tournament.Players {
+		if p.Status != "" {
+			continue
+		}
+
+		previousTotal, ok := previousRoundTotal(p, tournament.Round)
+		if !ok {
+			continue
+		}
+
+		standings = append(standings, roundStanding{
+			ID:            p.ID,
+			PreviousTotal: previousTotal,
+			CurrentRank:   p.CanonicalRank,
+		})
+	}
+
+	if len(standings) == 0 {
+		return nil
+	}
+
+	slices.SortFunc(standings, func(a, b roundStanding) int {
+		if a.PreviousTotal != b.PreviousTotal {
+			return a.PreviousTotal - b.PreviousTotal
+		}
+		return a.CurrentRank - b.CurrentRank
+	})
+
+	positions := make(map[string]int, len(standings))
+	for i := 0; i < len(standings); {
+		start := i + 1
+		score := standings[i].PreviousTotal
+		j := i
+		for j < len(standings) && standings[j].PreviousTotal == score {
+			positions[standings[j].ID] = start
+			j++
+		}
+		i = j
+	}
+
+	return positions
+}
+
+func previousRoundTotal(player espn.Player, currentRound int) (int, bool) {
+	total, ok := parseRelativeScore(player.TotalScore)
+	if !ok {
+		return 0, false
+	}
+
+	currentRoundIndex := currentRound - 1
+	if currentRoundIndex <= 0 || currentRoundIndex >= len(player.Rounds) {
+		return total, true
+	}
+
+	currentRoundScore := player.Rounds[currentRoundIndex]
+	if !currentRoundScore.Played || currentRoundScore.ToPar == "" {
+		return total, true
+	}
+
+	roundTotal, ok := parseRelativeScore(currentRoundScore.ToPar)
+	if !ok {
+		return total, true
+	}
+
+	return total - roundTotal, true
+}
+
+func parseRelativeScore(score string) (int, bool) {
+	score = strings.TrimSpace(strings.ToUpper(score))
+	if score == "" || score == "-" {
+		return 0, false
+	}
+	if score == "E" {
+		return 0, true
+	}
+
+	value, err := strconv.Atoi(score)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
 }
 
 func playerIndexByID(players []espn.Player, playerID string) int {
