@@ -63,13 +63,200 @@ gstat/
 - [x] Error handling (network failures, no active tournament)
 - [x] .gitignore, README, ROADMAP
 
-## Backlog (Future Versions)
+## v0.2.0 - Execution Plan
 
-### v0.2.0 - Leaderboard QoL
-- [ ] Search/filter: type to filter leaderboard by player name
-- [ ] Favorite/pin players: highlight favorites, group at top of leaderboard
-- [ ] Persist favorites to `~/.config/gstat/favorites.json`
-- [ ] Leaderboard change arrows: show position movement (up/down/new) since last refresh
+This section is the working plan for v0.2.0. We will implement one feature at a time, verify it, then update this document before moving to the next feature.
+
+### Execution Order
+
+1. Search/filter by player name
+2. Configurable round score display (`strokes` vs `to par`)
+3. Stable player identity + canonical/display rank plumbing
+4. Favorite/pin players
+5. Persist favorites to `~/.config/gstat/favorites.json`
+6. Leaderboard change arrows
+7. Visual indication for player score/standing updates
+
+### Verification Loop (After Every Feature)
+
+1. Run targeted tests for touched packages
+2. Run `go test ./...`
+3. Do a manual TUI smoke check
+4. Update this section with completion notes, files touched, and follow-ups
+
+### Feature 1 - Search/filter by player name
+
+- Status: complete (Mar 14, 2026)
+- Goal: type to filter leaderboard rows by player name without mutating canonical leaderboard data
+- Dependencies: none
+
+Concrete checklist:
+
+- [x] Add filter state to `internal/model/leaderboard.go`
+- [x] Implement vim-like search mode: `/` enters search, typed characters update the query, `backspace` deletes, `enter` exits search mode while keeping the filter, `esc` clears and exits
+- [x] Add a helper that derives the visible filtered player slice from `tournament.Players`
+- [x] Update leaderboard rendering to use the derived visible slice instead of the canonical slice directly
+- [x] Clamp or reset `scrollPos` whenever the filter changes
+- [x] Preserve the active filter across refreshes
+- [x] Show active filter text and clear hint in `internal/ui/statusbar.go`
+- [x] Render a readable empty-results state when no players match
+- [x] Add/extend tests for match, no-match, clear, scroll bounds, and refresh while filtered
+- [x] Update `README.md` keybindings/behavior if the final UX adds new user-facing keys
+
+Acceptance criteria:
+
+- Typing immediately narrows the visible leaderboard rows
+- `/` initiates search mode and the active query is visible in the UI
+- Clearing the filter restores the full leaderboard
+- Scrolling still works while filtered
+- Refreshing data does not clear the active filter
+- No-match state is obvious and does not break layout
+
+Session notes:
+
+- Do not introduce row selection yet; this feature should stay focused on filtering only
+- Keep `tournament.Players` as canonical data and build a derived filtered view
+- While search mode is active, printable keys should edit the query instead of triggering normal navigation behavior
+
+Completion notes:
+
+- Files touched: `internal/model/leaderboard.go`, `internal/model/leaderboard_test.go`, `internal/ui/statusbar.go`, `internal/ui/render_test.go`, `README.md`
+- Tests run: `go test ./internal/model ./internal/ui`, `go test ./...`
+- Follow-up: if we later add row selection or fuzzy matching, keep them separate from this canonical filtered-view pipeline
+
+### Feature 2 - Configurable round score display
+
+- Status: planned
+- Goal: keep `TOT` relative to par and allow `R1-R4` to toggle between strokes and relative-to-par
+- Dependencies: none
+
+Checklist:
+
+- [ ] Add round score display mode state to the leaderboard model
+- [ ] Render round columns from either `RoundScore.Strokes` or `RoundScore.ToPar`
+- [ ] Add a keybinding to toggle display mode
+- [ ] Surface the active mode in the status bar/help text
+- [ ] Add rendering tests for both modes
+- [ ] Update `README.md` docs
+
+Acceptance criteria:
+
+- `TOT` always remains relative to par
+- `R1-R4` switch cleanly between strokes and to-par
+- Column alignment remains stable at normal and narrow widths
+
+### Feature 3 - Stable player identity + canonical/display rank plumbing
+
+- Status: planned
+- Goal: introduce stable player identity and preserve separate canonical rank vs tied display rank
+- Dependencies: required before Features 4-7
+
+Checklist:
+
+- [ ] Carry ESPN athlete ID into the simplified `espn.Player` model
+- [ ] Preserve canonical/raw leaderboard order separately from tied display position
+- [ ] Keep tie rendering behavior unchanged in the UI
+- [ ] Add tests for ID parsing and tie/rank behavior
+
+Acceptance criteria:
+
+- Existing leaderboard output remains visually the same
+- Player identity is stable across refreshes
+- Tie rendering still shows `Tn` correctly
+
+### Feature 4 - Favorite/pin players
+
+- Status: planned
+- Goal: highlight favorite players and group them at the top of the visible leaderboard
+- Dependencies: Feature 3
+
+Checklist:
+
+- [ ] Add selected-row/cursor state
+- [ ] Add favorite state keyed by stable player ID
+- [ ] Add a keybinding to toggle favorite on the selected player
+- [ ] Build a derived visible list with favorites first, preserving leaderboard order within groups
+- [ ] Add favorite marker styling in the table
+- [ ] Add tests for toggle/reorder/render behavior
+
+Acceptance criteria:
+
+- Selection is predictable
+- Toggling favorite updates the row immediately
+- Favorites group at the top without breaking tie/cut rendering
+
+### Feature 5 - Persist favorites
+
+- Status: planned
+- Goal: persist favorites across app restarts
+- Dependencies: Feature 4
+
+Checklist:
+
+- [ ] Add config helper for reading/writing favorites
+- [ ] Use `os.UserConfigDir()` and store under `gstat/favorites.json`
+- [ ] Create config directory if missing
+- [ ] Save atomically
+- [ ] Handle missing/corrupt/unreadable config gracefully
+- [ ] Surface persistence errors non-fatally in the UI
+- [ ] Add tests for load/save/error cases
+
+Acceptance criteria:
+
+- Favorites survive restart
+- Corrupt config does not crash the app
+- Persistence failure does not break in-memory favorites
+
+### Feature 6 - Leaderboard change arrows
+
+- Status: planned
+- Goal: show when a player has moved up, down, or is newly tracked since the previous refresh
+- Dependencies: Feature 3
+
+Checklist:
+
+- [ ] Store previous refresh snapshot keyed by stable player ID
+- [ ] Compute movement metadata on each successful refresh
+- [ ] Compare canonical rank, not filtered/pinned display order
+- [ ] Render up/down/new indicators in the table
+- [ ] Handle first load and missing previous data cleanly
+- [ ] Add tests for up/down/same/new cases
+
+Acceptance criteria:
+
+- Arrows only appear after at least one refresh
+- Filtering/pinning does not affect movement calculation
+- Tie groups do not create noisy false signals
+
+### Feature 7 - Visual indication for player score/standing updates
+
+- Status: planned
+- Goal: make player changes easy to notice when score or standing changes on refresh
+- Dependencies: reuse Feature 6 snapshot plumbing
+
+Checklist:
+
+- [ ] Reuse previous-refresh snapshot data
+- [ ] Detect score changes and standing changes separately
+- [ ] Add transient row-level change metadata
+- [ ] Add subtle highlight or marker that coexists with favorite and movement styling
+- [ ] Decide and implement decay/reset behavior for the indicator
+- [ ] Add tests for changed vs unchanged rows
+
+Acceptance criteria:
+
+- Updated players are visually noticeable
+- The table remains readable when many players change
+- Indicators clear/reset predictably
+
+### Session Resume Rules
+
+- Do not start a new feature until the current feature passes tests and manual smoke checks
+- Preserve `tournament.Players` as canonical data; filter/pin views should be derived views
+- Use stable player ID for anything persisted or compared across refreshes
+- Compute movement/update state from canonical rank, not filtered or pinned order
+
+## Backlog (Future Versions)
 
 ### v0.3.0 - Player Detail View
 - [ ] Select a player (Enter) to expand inline hole-by-hole scorecard

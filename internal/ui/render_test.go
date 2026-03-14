@@ -351,22 +351,33 @@ func TestRenderCutLine(t *testing.T) {
 
 func TestRenderStatusBar(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 25*time.Second, 80, "")
+	out := ui.RenderStatusBar(now, 25*time.Second, 80, "", "", false)
 
 	mustContain(t, out, "refresh countdown", "25s")
 	mustContain(t, out, "quit hint", "quit")
 	mustContain(t, out, "refresh hint", "refresh")
+	mustContain(t, out, "search hint", "search")
 }
 
 func TestRenderStatusBarWithError(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 80, "connection refused")
+	out := ui.RenderStatusBar(now, 10*time.Second, 80, "connection refused", "", false)
 
 	mustContain(t, out, "error message", "connection refused")
 }
 
 func TestRenderStatusBarZeroTime(t *testing.T) {
-	out := ui.RenderStatusBar(time.Time{}, 0, 80, "")
+	out := ui.RenderStatusBar(time.Time{}, 0, 80, "", "", false)
 
 	mustContain(t, out, "fetching message", "Fetching")
+}
+
+func TestRenderStatusBarSearchMode(t *testing.T) {
+	now := time.Now()
+	out := ui.RenderStatusBar(now, 10*time.Second, 80, "", "schef", true)
+
+	mustContain(t, out, "filter query", "/schef")
+	mustContain(t, out, "search mode", "search")
+	mustContain(t, out, "enter hint", "apply")
+	mustContain(t, out, "escape hint", "clear")
 }

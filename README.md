@@ -43,6 +43,7 @@ go build -o gstat .
 - Tied position indicators (T1, T2, etc.)
 - Cut line separator with dimmed styling for eliminated players
 - WD (withdrawn) player detection
+- Vim-style player search with `/`
 - Scrollable with vim-style keybindings
 
 ## Keybindings
@@ -55,6 +56,9 @@ go build -o gstat .
 | `Ctrl+u` / `PgUp` | Jump half page up |
 | `g` / `Home` | Jump to top |
 | `G` / `End` | Jump to bottom |
+| `/` | Start player search |
+| `Enter` | Apply current search |
+| `Esc` | Clear search |
 | `r` | Force refresh |
 | `q` / `Ctrl+C` | Quit |
 

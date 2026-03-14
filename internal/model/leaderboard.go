@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -17,15 +18,17 @@ const (
 // Model is the main Bubble Tea model for the leaderboard view.
 type Model struct {
 	// Data
-	tournament  *espn.Tournament
-	client      *espn.Client
-	lastUpdate  time.Time
-	lastError   string
+	tournament *espn.Tournament
+	client     *espn.Client
+	lastUpdate time.Time
+	lastError  string
 
 	// UI state
 	width       int
 	height      int
 	scrollPos   int
+	filterQuery string
+	searchMode  bool
 	showHelp    bool
 
 	// Refresh
@@ -58,6 +61,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.clampScroll()
 		return m, nil
 
 	case tea.KeyMsg:
@@ -69,12 +73,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastError = ""
 		m.loading = false
 		m.nextRefreshAt = time.Now().Add(m.refreshInterval)
+		m.clampScroll()
 		return m, nil
 
 	case DataErrorMsg:
 		m.lastError = msg.Err.Error()
 		m.loading = false
 		m.nextRefreshAt = time.Now().Add(m.refreshInterval)
+		m.clampScroll()
 		return m, nil
 
 	case TickMsg:
@@ -148,7 +154,7 @@ func (m Model) renderContent() string {
 	if m.lastError != "" && m.tournament != nil {
 		statusErr = m.lastError
 	}
-	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr)
+	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr, m.filterQuery, m.searchMode)
 
 	return s
 }
@@ -161,6 +167,14 @@ func (m Model) renderLeaderboard() string {
 	}
 
 	t := m.tournament
+	players := m.filteredPlayers()
+	if len(players) == 0 {
+		styles := ui.DefaultStyles()
+		if m.filterQuery != "" {
+			return styles.StatusDim.Render(fmt.Sprintf("  No players match %q\n", m.filterQuery))
+		}
+		return styles.StatusDim.Render("  No players to display\n")
+	}
 
 	// Determine total rounds to show
 	totalRounds := maxRounds(t)
@@ -179,18 +193,18 @@ func (m Model) renderLeaderboard() string {
 	}
 
 	// Determine the cut line position
-	cutLine := findCutLine(t.Players)
+	cutLine := findCutLine(players)
 
 	// Calculate visible range based on scroll position
 	startIdx := m.scrollPos
 	endIdx := startIdx + visibleRows
-	if endIdx > len(t.Players) {
-		endIdx = len(t.Players)
+	if endIdx > len(players) {
+		endIdx = len(players)
 	}
 
 	// Render visible rows
 	for i := startIdx; i < endIdx; i++ {
-		p := t.Players[i]
+		p := players[i]
 
 		// Insert cut line if applicable
 		if cutLine > 0 && i == cutLine && i > startIdx {
@@ -203,10 +217,10 @@ func (m Model) renderLeaderboard() string {
 	}
 
 	// Scroll indicator
-	if len(t.Players) > visibleRows {
+	if len(players) > visibleRows {
 		styles := ui.DefaultStyles()
 		indicator := fmt.Sprintf("  Showing %d-%d of %d players",
-			startIdx+1, endIdx, len(t.Players))
+			startIdx+1, endIdx, len(players))
 		s += styles.StatusDim.Render(indicator)
 		s += "\n"
 	}
@@ -216,8 +230,23 @@ func (m Model) renderLeaderboard() string {
 
 // handleKey processes keyboard input.
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.Key()
+
+	if msg.String() == "ctrl+c" {
+		return m, tea.Quit
+	}
+
+	if m.searchMode {
+		return m.handleSearchKey(key)
+	}
+
+	if key.Text == "/" {
+		m.searchMode = true
+		return m, nil
+	}
+
 	switch msg.String() {
-	case "q", "ctrl+c":
+	case "q":
 		return m, tea.Quit
 
 	case "up", "k":
@@ -298,6 +327,30 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) handleSearchKey(key tea.Key) (tea.Model, tea.Cmd) {
+	switch key.Code {
+	case tea.KeyEscape:
+		m.searchMode = false
+		m.setFilterQuery("")
+		return m, nil
+	case tea.KeyEnter:
+		m.searchMode = false
+		return m, nil
+	case tea.KeyBackspace, tea.KeyDelete:
+		query := []rune(m.filterQuery)
+		if len(query) > 0 {
+			m.setFilterQuery(string(query[:len(query)-1]))
+		}
+		return m, nil
+	}
+
+	if key.Text != "" {
+		m.setFilterQuery(m.filterQuery + key.Text)
+	}
+
+	return m, nil
+}
+
 // fetchData creates a command that fetches tournament data from ESPN.
 func (m Model) fetchData() tea.Cmd {
 	return func() tea.Msg {
@@ -330,4 +383,51 @@ func findCutLine(players []espn.Player) int {
 		}
 	}
 	return -1
+}
+
+func (m Model) filteredPlayers() []espn.Player {
+	if m.tournament == nil {
+		return nil
+	}
+	return filterPlayers(m.tournament.Players, m.filterQuery)
+}
+
+func filterPlayers(players []espn.Player, query string) []espn.Player {
+	query = strings.TrimSpace(strings.ToLower(query))
+	if query == "" {
+		return players
+	}
+
+	filtered := make([]espn.Player, 0, len(players))
+	for _, p := range players {
+		if strings.Contains(strings.ToLower(p.Name), query) {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
+func (m *Model) setFilterQuery(query string) {
+	m.filterQuery = query
+	m.scrollPos = 0
+	m.clampScroll()
+}
+
+func (m *Model) clampScroll() {
+	players := m.filteredPlayers()
+	visibleRows := m.height - 9
+	if visibleRows < 5 {
+		visibleRows = 5
+	}
+
+	maxScroll := len(players) - visibleRows
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if m.scrollPos > maxScroll {
+		m.scrollPos = maxScroll
+	}
+	if m.scrollPos < 0 {
+		m.scrollPos = 0
+	}
 }
