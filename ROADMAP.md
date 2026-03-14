@@ -71,11 +71,12 @@ This section is the working plan for v0.2.0. We will implement one feature at a 
 
 1. Search/filter by player name
 2. Configurable round score display (`strokes` vs `to par`)
-3. Stable player identity + canonical/display rank plumbing
-4. Favorite/pin players
-5. Persist favorites to `~/.config/gstat/favorites.json`
-6. Leaderboard change arrows
-7. Visual indication for player score/standing updates
+3. Toggleable on-screen hotkey hints
+4. Stable player identity + canonical/display rank plumbing
+5. Favorite/pin players
+6. Persist favorites to `~/.config/gstat/favorites.json`
+7. Leaderboard change arrows
+8. Visual indication for player score/standing updates
 
 ### Verification Loop (After Every Feature)
 
@@ -126,18 +127,18 @@ Completion notes:
 
 ### Feature 2 - Configurable round score display
 
-- Status: planned
+- Status: complete (Mar 14, 2026)
 - Goal: keep `TOT` relative to par and allow `R1-R4` to toggle between strokes and relative-to-par
 - Dependencies: none
 
 Checklist:
 
-- [ ] Add round score display mode state to the leaderboard model
-- [ ] Render round columns from either `RoundScore.Strokes` or `RoundScore.ToPar`
-- [ ] Add a keybinding to toggle display mode
-- [ ] Surface the active mode in the status bar/help text
-- [ ] Add rendering tests for both modes
-- [ ] Update `README.md` docs
+- [x] Add round score display mode state to the leaderboard model
+- [x] Render round columns from either `RoundScore.Strokes` or `RoundScore.ToPar`
+- [x] Add a keybinding to toggle display mode
+- [x] Surface the active mode in the status bar/help text
+- [x] Add rendering tests for both modes
+- [x] Update `README.md` docs
 
 Acceptance criteria:
 
@@ -145,11 +146,48 @@ Acceptance criteria:
 - `R1-R4` switch cleanly between strokes and to-par
 - Column alignment remains stable at normal and narrow widths
 
-### Feature 3 - Stable player identity + canonical/display rank plumbing
+Completion notes:
+
+- Files touched: `internal/model/leaderboard.go`, `internal/model/leaderboard_test.go`, `internal/ui/table.go`, `internal/ui/statusbar.go`, `internal/ui/render_test.go`, `README.md`
+- Tests run: `go test ./internal/model ./internal/ui`, `go test ./...`
+- Behavior: the app now defaults to round columns in to-par mode, with `t` toggling back to strokes
+- Follow-up: Feature 4 can now add stable player identity without needing to revisit this round-mode plumbing
+
+### Feature 3 - Toggleable on-screen hotkey hints [COMPLETE]
+
+- Status: complete (Mar 14, 2026)
+- Goal: make available hotkeys discoverable in-app with a toggleable help view that does not interfere with normal leaderboard use
+- Dependencies: builds on the existing keybinding/status bar foundation
+
+Checklist:
+
+- [x] Add a dedicated help-panel render path for available hotkeys and their actions
+- [x] Toggle the help panel with a keyboard shortcut
+- [x] Keep a compact always-visible hint that the full help can be opened
+- [x] Show context-aware hints for normal mode vs search mode
+- [x] Reduce visible leaderboard rows while the help panel is open so layout remains stable
+- [x] Add rendering/model tests for help visibility and content
+- [x] Update `README.md` docs
+
+Acceptance criteria:
+
+- Users can discover the major hotkeys without leaving the app
+- The help view can be opened and closed repeatedly without breaking scrolling or search
+- Search-mode help reflects search-specific controls
+- The leaderboard remains readable with the help view open
+
+Completion notes:
+
+- Files touched: `internal/model/leaderboard.go`, `internal/model/leaderboard_test.go`, `internal/ui/help.go`, `internal/ui/statusbar.go`, `internal/ui/styles.go`, `internal/ui/render_test.go`, `README.md`
+- Tests run: `go test ./internal/model ./internal/ui`, `go test ./...`
+- Behavior: when expanded hints are hidden, the status bar now keeps `? show hints` visible and reserves enough space for the full status line on shorter terminals
+- Follow-up: Feature 4 still starts the stable-ID plumbing needed for favorites and movement tracking
+
+### Feature 4 - Stable player identity + canonical/display rank plumbing
 
 - Status: planned
 - Goal: introduce stable player identity and preserve separate canonical rank vs tied display rank
-- Dependencies: required before Features 4-7
+- Dependencies: required before Features 5-8
 
 Checklist:
 
@@ -164,11 +202,11 @@ Acceptance criteria:
 - Player identity is stable across refreshes
 - Tie rendering still shows `Tn` correctly
 
-### Feature 4 - Favorite/pin players
+### Feature 5 - Favorite/pin players
 
 - Status: planned
 - Goal: highlight favorite players and group them at the top of the visible leaderboard
-- Dependencies: Feature 3
+- Dependencies: Feature 4
 
 Checklist:
 
@@ -185,11 +223,11 @@ Acceptance criteria:
 - Toggling favorite updates the row immediately
 - Favorites group at the top without breaking tie/cut rendering
 
-### Feature 5 - Persist favorites
+### Feature 6 - Persist favorites
 
 - Status: planned
 - Goal: persist favorites across app restarts
-- Dependencies: Feature 4
+- Dependencies: Feature 5
 
 Checklist:
 
@@ -207,11 +245,11 @@ Acceptance criteria:
 - Corrupt config does not crash the app
 - Persistence failure does not break in-memory favorites
 
-### Feature 6 - Leaderboard change arrows
+### Feature 7 - Leaderboard change arrows
 
 - Status: planned
 - Goal: show when a player has moved up, down, or is newly tracked since the previous refresh
-- Dependencies: Feature 3
+- Dependencies: Feature 4
 
 Checklist:
 
@@ -228,11 +266,11 @@ Acceptance criteria:
 - Filtering/pinning does not affect movement calculation
 - Tie groups do not create noisy false signals
 
-### Feature 7 - Visual indication for player score/standing updates
+### Feature 8 - Visual indication for player score/standing updates
 
 - Status: planned
 - Goal: make player changes easy to notice when score or standing changes on refresh
-- Dependencies: reuse Feature 6 snapshot plumbing
+- Dependencies: reuse Feature 7 snapshot plumbing
 
 Checklist:
 

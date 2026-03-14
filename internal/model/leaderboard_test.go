@@ -163,3 +163,54 @@ func TestRenderLeaderboardNoMatches(t *testing.T) {
 		t.Fatalf("expected no-match message, got %q", out)
 	}
 }
+
+func TestHandleKeyTogglesRoundDisplayMode(t *testing.T) {
+	m := New()
+	if m.roundMode != roundScoreDisplayToPar {
+		t.Fatalf("roundMode = %q, want %q", m.roundMode, roundScoreDisplayToPar)
+	}
+
+	m = pressKey(t, m, keyWithText("t"))
+	if m.roundMode != roundScoreDisplayStrokes {
+		t.Fatalf("roundMode = %q, want %q", m.roundMode, roundScoreDisplayStrokes)
+	}
+
+	m = pressKey(t, m, keyWithText("t"))
+	if m.roundMode != roundScoreDisplayToPar {
+		t.Fatalf("roundMode = %q, want %q", m.roundMode, roundScoreDisplayToPar)
+	}
+}
+
+func TestHandleKeyTogglesHelpPanel(t *testing.T) {
+	m := New()
+	m = pressKey(t, m, keyWithText("?"))
+	if !m.showHelp {
+		t.Fatal("showHelp = false, want true")
+	}
+
+	m = pressKey(t, m, keyWithText("?"))
+	if m.showHelp {
+		t.Fatal("showHelp = true, want false")
+	}
+}
+
+func TestVisibleRowsShrinksWhenHelpPanelOpen(t *testing.T) {
+	m := New()
+	m.height = 24
+	closedRows := m.visibleRows()
+	m.showHelp = true
+	openRows := m.visibleRows()
+
+	if openRows >= closedRows {
+		t.Fatalf("openRows = %d, want less than %d when help is open", openRows, closedRows)
+	}
+}
+
+func TestVisibleRowsKeepsStatusBarSpace(t *testing.T) {
+	m := New()
+	m.height = 10
+
+	if got := m.visibleRows(); got != 1 {
+		t.Fatalf("visibleRows = %d, want 1 for short terminals", got)
+	}
+}

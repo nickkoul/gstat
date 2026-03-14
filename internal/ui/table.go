@@ -10,12 +10,12 @@ import (
 
 // Column widths
 const (
-	colPos    = 5
-	colName   = 24
-	colCtry   = 5
-	colScore  = 6
-	colRound  = 5
-	colThru   = 5
+	colPos   = 5
+	colName  = 24
+	colCtry  = 5
+	colScore = 6
+	colRound = 5
+	colThru  = 5
 )
 
 // countryEmoji maps common country codes to flag emojis.
@@ -57,7 +57,7 @@ func RenderTableHeader(width int, totalRounds int) string {
 }
 
 // RenderPlayerRow renders a single player row in the leaderboard.
-func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLine int) string {
+func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLine int, showRoundScoresToPar bool) string {
 	s := DefaultStyles()
 
 	// Position display with tie indicator
@@ -89,13 +89,11 @@ func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLi
 	// Round scores
 	var roundsStyled string
 	for i := 0; i < totalRounds; i++ {
-		var rStr string
-		if i < len(p.Rounds) && p.Rounds[i].Played {
-			rStr = padLeft(fmt.Sprintf("%d", p.Rounds[i].Strokes), colRound)
+		if i < len(p.Rounds) {
+			roundsStyled += renderRoundScore(p.Rounds[i], showRoundScoresToPar, s)
 		} else {
-			rStr = padLeft("-", colRound)
+			roundsStyled += s.RoundScore.Render(padLeft("-", colRound))
 		}
-		roundsStyled += s.RoundScore.Render(rStr)
 	}
 
 	// Thru
@@ -128,8 +126,8 @@ func RenderCutLine(width int) string {
 }
 
 // renderScore renders the total score with appropriate color.
-func renderScore(score string, s Styles) string {
-	scoreStr := padLeft(score, colScore)
+func renderRelativeScore(score string, width int, s Styles) string {
+	scoreStr := padLeft(score, width)
 
 	if score == "" || score == "-" {
 		return s.RoundScore.Render(scoreStr)
@@ -143,6 +141,25 @@ func renderScore(score string, s Styles) string {
 	}
 	// "E" for even
 	return s.ScoreEven.Render(scoreStr)
+}
+
+func renderScore(score string, s Styles) string {
+	return renderRelativeScore(score, colScore, s)
+}
+
+func renderRoundScore(round espn.RoundScore, showToPar bool, s Styles) string {
+	if !round.Played {
+		return s.RoundScore.Render(padLeft("-", colRound))
+	}
+
+	if showToPar {
+		if round.ToPar == "" {
+			return s.RoundScore.Render(padLeft("-", colRound))
+		}
+		return renderRelativeScore(round.ToPar, colRound, s)
+	}
+
+	return s.RoundScore.Render(padLeft(fmt.Sprintf("%d", round.Strokes), colRound))
 }
 
 // formatPosition formats the position with tie indicator.

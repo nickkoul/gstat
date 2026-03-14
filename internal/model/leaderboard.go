@@ -15,6 +15,13 @@ const (
 	scrollPadding          = 3 // rows of padding when scrolling near edges
 )
 
+type roundScoreDisplayMode string
+
+const (
+	roundScoreDisplayStrokes roundScoreDisplayMode = "strokes"
+	roundScoreDisplayToPar   roundScoreDisplayMode = "to par"
+)
+
 // Model is the main Bubble Tea model for the leaderboard view.
 type Model struct {
 	// Data
@@ -29,6 +36,7 @@ type Model struct {
 	scrollPos   int
 	filterQuery string
 	searchMode  bool
+	roundMode   roundScoreDisplayMode
 	showHelp    bool
 
 	// Refresh
@@ -43,6 +51,7 @@ func New() Model {
 		client:          espn.NewClient(),
 		refreshInterval: defaultRefreshInterval,
 		loading:         true,
+		roundMode:       roundScoreDisplayToPar,
 	}
 }
 
@@ -123,6 +132,11 @@ func (m Model) renderContent() string {
 	s += ui.RenderHeader(m.tournament, m.width)
 	s += "\n"
 
+	if m.showHelp {
+		s += ui.RenderHelpPanel(m.width, m.searchMode, string(m.roundMode))
+		s += "\n"
+	}
+
 	if m.loading && m.tournament == nil {
 		s += "\n"
 		styles := ui.DefaultStyles()
@@ -154,7 +168,7 @@ func (m Model) renderContent() string {
 	if m.lastError != "" && m.tournament != nil {
 		statusErr = m.lastError
 	}
-	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr, m.filterQuery, m.searchMode)
+	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr, m.filterQuery, m.searchMode, m.showHelp, string(m.roundMode))
 
 	return s
 }
@@ -185,12 +199,9 @@ func (m Model) renderLeaderboard() string {
 	s += ui.RenderTableHeader(m.width, totalRounds)
 	s += "\n"
 
-	// Visible rows (accounting for header, footer, etc.)
-	// Header takes ~4 lines, status bar ~3 lines, table header ~2 lines
-	visibleRows := m.height - 9
-	if visibleRows < 5 {
-		visibleRows = 5
-	}
+	// Visible rows after reserving space for header, table chrome,
+	// scroll indicator, and the two-line status bar block.
+	visibleRows := m.visibleRows()
 
 	// Determine the cut line position
 	cutLine := findCutLine(players)
@@ -212,7 +223,7 @@ func (m Model) renderLeaderboard() string {
 			s += "\n"
 		}
 
-		s += ui.RenderPlayerRow(p, i, m.width, totalRounds, cutLine)
+		s += ui.RenderPlayerRow(p, i, m.width, totalRounds, cutLine, m.roundMode == roundScoreDisplayToPar)
 		s += "\n"
 	}
 
@@ -257,10 +268,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "down", "j":
 		if m.tournament != nil {
-			visibleRows := m.height - 9
-			if visibleRows < 5 {
-				visibleRows = 5
-			}
+			visibleRows := m.visibleRows()
 			maxScroll := len(m.tournament.Players) - visibleRows
 			if maxScroll < 0 {
 				maxScroll = 0
@@ -272,10 +280,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "ctrl+u", "pgup":
-		visibleRows := m.height - 9
-		if visibleRows < 5 {
-			visibleRows = 5
-		}
+		visibleRows := m.visibleRows()
 		m.scrollPos -= visibleRows / 2
 		if m.scrollPos < 0 {
 			m.scrollPos = 0
@@ -284,10 +289,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "ctrl+d", "pgdown":
 		if m.tournament != nil {
-			visibleRows := m.height - 9
-			if visibleRows < 5 {
-				visibleRows = 5
-			}
+			visibleRows := m.visibleRows()
 			maxScroll := len(m.tournament.Players) - visibleRows
 			if maxScroll < 0 {
 				maxScroll = 0
@@ -305,7 +307,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "end", "G":
 		if m.tournament != nil {
-			visibleRows := m.height - 9
+			visibleRows := m.visibleRows()
 			maxScroll := len(m.tournament.Players) - visibleRows
 			if maxScroll < 0 {
 				maxScroll = 0
@@ -318,6 +320,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.loading = true
 		m.lastError = ""
 		return m, m.fetchData()
+
+	case "t":
+		m.toggleRoundMode()
+		return m, nil
 
 	case "?":
 		m.showHelp = !m.showHelp
@@ -415,10 +421,7 @@ func (m *Model) setFilterQuery(query string) {
 
 func (m *Model) clampScroll() {
 	players := m.filteredPlayers()
-	visibleRows := m.height - 9
-	if visibleRows < 5 {
-		visibleRows = 5
-	}
+	visibleRows := m.visibleRows()
 
 	maxScroll := len(players) - visibleRows
 	if maxScroll < 0 {
@@ -430,4 +433,27 @@ func (m *Model) clampScroll() {
 	if m.scrollPos < 0 {
 		m.scrollPos = 0
 	}
+}
+
+func (m Model) visibleRows() int {
+	visibleRows := m.height - 11 - m.helpPanelHeight()
+	if visibleRows < 1 {
+		visibleRows = 1
+	}
+	return visibleRows
+}
+
+func (m Model) helpPanelHeight() int {
+	if !m.showHelp {
+		return 0
+	}
+	return ui.HelpPanelLineCount(m.searchMode) + 1
+}
+
+func (m *Model) toggleRoundMode() {
+	if m.roundMode == roundScoreDisplayToPar {
+		m.roundMode = roundScoreDisplayStrokes
+		return
+	}
+	m.roundMode = roundScoreDisplayToPar
 }

@@ -5,78 +5,167 @@ import (
 	"time"
 )
 
+type statusSegment struct {
+	rendered string
+	width    int
+}
+
 // RenderStatusBar renders the bottom status bar with last update time and keybinds.
-func RenderStatusBar(lastUpdate time.Time, nextRefresh time.Duration, width int, errMsg string, filterQuery string, searchMode bool) string {
+func RenderStatusBar(lastUpdate time.Time, nextRefresh time.Duration, width int, errMsg string, filterQuery string, searchMode bool, showHelp bool, roundMode string) string {
 	s := DefaultStyles()
 
-	var left string
+	var leftSegments []statusSegment
 	if errMsg != "" {
-		left = s.Error.Render(fmt.Sprintf(" %s", errMsg))
+		leftSegments = append(leftSegments, newStatusSegment(s.Error.Render(fmt.Sprintf(" %s", errMsg))))
 	} else if !lastUpdate.IsZero() {
 		timeStr := lastUpdate.Format("3:04:05 PM")
-		left = fmt.Sprintf(" %s %s",
+		leftSegments = append(leftSegments, newStatusSegment(fmt.Sprintf(" %s %s",
 			s.StatusDim.Render("Updated"),
 			s.StatusValue.Render(timeStr),
-		)
+		)))
 		if nextRefresh > 0 {
 			secs := int(nextRefresh.Seconds())
-			left += fmt.Sprintf("  %s %s",
+			leftSegments = append(leftSegments, newStatusSegment(fmt.Sprintf("%s %s",
 				s.StatusDim.Render("Next"),
 				s.StatusValue.Render(fmt.Sprintf("%ds", secs)),
-			)
+			)))
 		}
 	} else {
-		left = s.StatusDim.Render(" Fetching data...")
+		leftSegments = append(leftSegments, newStatusSegment(s.StatusDim.Render(" Fetching data...")))
 	}
 
 	if filterQuery != "" || searchMode {
-		query := filterQuery
-		if query == "" {
-			query = ""
-		}
-		left += fmt.Sprintf("  %s %s",
+		leftSegments = append(leftSegments, newStatusSegment(fmt.Sprintf("%s %s",
 			s.StatusDim.Render("Filter"),
-			s.StatusValue.Render(fmt.Sprintf("/%s", query)),
-		)
+			s.StatusValue.Render(fmt.Sprintf("/%s", filterQuery)),
+		)))
 		if searchMode {
-			left += fmt.Sprintf(" %s", s.StatusDim.Render("(search)"))
+			leftSegments = append(leftSegments, newStatusSegment(s.StatusDim.Render("(search)")))
 		}
+	}
+
+	if roundMode != "" {
+		leftSegments = append(leftSegments, newStatusSegment(fmt.Sprintf("%s %s",
+			s.StatusDim.Render("Rounds"),
+			s.StatusValue.Render(roundMode),
+		)))
 	}
 
 	// Keybind hints
-	var right string
-	if searchMode {
-		right = fmt.Sprintf("%s %s  %s %s  %s %s ",
-			s.StatusKey.Render("enter"),
-			s.StatusDim.Render("apply"),
-			s.StatusKey.Render("esc"),
-			s.StatusDim.Render("clear"),
-			s.StatusKey.Render("^c"),
-			s.StatusDim.Render("quit"),
-		)
-	} else {
-		right = fmt.Sprintf("%s %s  %s %s  %s %s  %s %s  %s %s ",
-			s.StatusKey.Render("/"),
-			s.StatusDim.Render("search"),
-			s.StatusKey.Render("j/k"),
-			s.StatusDim.Render("scroll"),
-			s.StatusKey.Render("^d/^u"),
-			s.StatusDim.Render("jump"),
-			s.StatusKey.Render("r"),
-			s.StatusDim.Render("refresh"),
-			s.StatusKey.Render("q"),
-			s.StatusDim.Render("quit"),
-		)
+	helpLabel := "show hints"
+	if showHelp {
+		helpLabel = "hide hints"
 	}
 
-	// Calculate gap between left and right
+	rightCandidates := buildRightCandidates(s, searchMode, helpLabel)
+	fullLeftWidth := totalStatusWidth(leftSegments)
+	right := rightCandidates[len(rightCandidates)-1]
+	for _, candidate := range rightCandidates {
+		if width-candidate.width-1 >= fullLeftWidth {
+			right = candidate
+			break
+		}
+	}
+
+	maxLeftWidth := width - right.width - 1
+	left := joinStatusSegments(leftSegments, maxLeftWidth)
 	leftWidth := lipglossWidth(left)
-	rightWidth := lipglossWidth(right)
-	gap := width - leftWidth - rightWidth
+	gap := width - leftWidth - right.width
 	if gap < 1 {
 		gap = 1
 	}
 
-	bar := left + fmt.Sprintf("%*s", gap, "") + right
+	bar := left + fmt.Sprintf("%*s", gap, "") + right.rendered
 	return s.StatusBar.Width(width).Render(bar)
+}
+
+func newStatusSegment(rendered string) statusSegment {
+	return statusSegment{rendered: rendered, width: lipglossWidth(rendered)}
+}
+
+func joinStatusSegments(segments []statusSegment, maxWidth int) string {
+	if len(segments) == 0 || maxWidth <= 0 {
+		return ""
+	}
+
+	joined := segments[0].rendered
+	used := segments[0].width
+	for _, segment := range segments[1:] {
+		segmentWidth := 2 + segment.width
+		if used+segmentWidth > maxWidth {
+			break
+		}
+		joined += "  " + segment.rendered
+		used += segmentWidth
+	}
+
+	return joined
+}
+
+func totalStatusWidth(segments []statusSegment) int {
+	if len(segments) == 0 {
+		return 0
+	}
+
+	width := segments[0].width
+	for _, segment := range segments[1:] {
+		width += 2 + segment.width
+	}
+	return width
+}
+
+func buildRightCandidates(s Styles, searchMode bool, helpLabel string) []statusSegment {
+	if searchMode {
+		return []statusSegment{
+			newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s ",
+				s.StatusKey.Render("?"),
+				s.StatusDim.Render(helpLabel),
+				s.StatusKey.Render("enter"),
+				s.StatusDim.Render("apply"),
+				s.StatusKey.Render("esc"),
+				s.StatusDim.Render("clear"),
+				s.StatusKey.Render("^c"),
+				s.StatusDim.Render("quit"),
+			)),
+			newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s ",
+				s.StatusKey.Render("?"),
+				s.StatusDim.Render(helpLabel),
+				s.StatusKey.Render("enter"),
+				s.StatusDim.Render("apply"),
+				s.StatusKey.Render("esc"),
+				s.StatusDim.Render("clear"),
+			)),
+			newStatusSegment(fmt.Sprintf("%s %s ",
+				s.StatusKey.Render("?"),
+				s.StatusDim.Render(helpLabel),
+			)),
+		}
+	}
+
+	return []statusSegment{
+		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s  %s %s ",
+			s.StatusKey.Render("?"),
+			s.StatusDim.Render(helpLabel),
+			s.StatusKey.Render("/"),
+			s.StatusDim.Render("search"),
+			s.StatusKey.Render("t"),
+			s.StatusDim.Render("rounds"),
+			s.StatusKey.Render("r"),
+			s.StatusDim.Render("refresh"),
+			s.StatusKey.Render("q"),
+			s.StatusDim.Render("quit"),
+		)),
+		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s ",
+			s.StatusKey.Render("?"),
+			s.StatusDim.Render(helpLabel),
+			s.StatusKey.Render("/"),
+			s.StatusDim.Render("search"),
+			s.StatusKey.Render("q"),
+			s.StatusDim.Render("quit"),
+		)),
+		newStatusSegment(fmt.Sprintf("%s %s ",
+			s.StatusKey.Render("?"),
+			s.StatusDim.Render(helpLabel),
+		)),
+	}
 }

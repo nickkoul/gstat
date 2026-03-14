@@ -44,6 +44,8 @@ go build -o gstat .
 - Cut line separator with dimmed styling for eliminated players
 - WD (withdrawn) player detection
 - Vim-style player search with `/`
+- Round columns default to to-par; press `t` to toggle strokes view
+- Toggle an expanded hotkey help panel with `?`
 - Scrollable with vim-style keybindings
 
 ## Keybindings
@@ -57,6 +59,8 @@ go build -o gstat .
 | `g` / `Home` | Jump to top |
 | `G` / `End` | Jump to bottom |
 | `/` | Start player search |
+| `t` | Toggle round columns between strokes and to par |
+| `?` | Toggle expanded hotkey help |
 | `Enter` | Apply current search |
 | `Esc` | Clear search |
 | `r` | Force refresh |

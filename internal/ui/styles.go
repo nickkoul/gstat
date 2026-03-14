@@ -7,29 +7,29 @@ import (
 // Color palette - modern, golf-inspired
 var (
 	// Base colors
-	colorWhite     = lipgloss.Color("#FFFFFF")
-	colorGray      = lipgloss.Color("#6B7280")
-	colorDarkGray  = lipgloss.Color("#374151")
-	colorDimGray   = lipgloss.Color("#4B5563")
-	colorBg        = lipgloss.Color("#111827")
-	colorBgAlt     = lipgloss.Color("#1F2937")
-	colorBorder    = lipgloss.Color("#374151")
+	colorWhite    = lipgloss.Color("#FFFFFF")
+	colorGray     = lipgloss.Color("#6B7280")
+	colorDarkGray = lipgloss.Color("#374151")
+	colorDimGray  = lipgloss.Color("#4B5563")
+	colorBg       = lipgloss.Color("#111827")
+	colorBgAlt    = lipgloss.Color("#1F2937")
+	colorBorder   = lipgloss.Color("#374151")
 
 	// Accent colors
-	colorGreen     = lipgloss.Color("#10B981") // under par
-	colorRed       = lipgloss.Color("#EF4444") // over par
-	colorYellow    = lipgloss.Color("#F59E0B") // even par
-	colorBlue      = lipgloss.Color("#3B82F6") // highlights
-	colorCyan      = lipgloss.Color("#06B6D4") // tournament info
-	colorPurple    = lipgloss.Color("#8B5CF6") // eagle or better
-	colorAmber     = lipgloss.Color("#D97706") // bogey+
+	colorGreen  = lipgloss.Color("#10B981") // under par
+	colorRed    = lipgloss.Color("#EF4444") // over par
+	colorYellow = lipgloss.Color("#F59E0B") // even par
+	colorBlue   = lipgloss.Color("#3B82F6") // highlights
+	colorCyan   = lipgloss.Color("#06B6D4") // tournament info
+	colorPurple = lipgloss.Color("#8B5CF6") // eagle or better
+	colorAmber  = lipgloss.Color("#D97706") // bogey+
 
 	// Score colors
-	colorEagle     = lipgloss.Color("#A78BFA") // purple for eagle
-	colorBirdie    = lipgloss.Color("#34D399") // green for birdie
-	colorPar       = lipgloss.Color("#9CA3AF") // gray for par
-	colorBogey     = lipgloss.Color("#FBBF24") // yellow for bogey
-	colorDouble    = lipgloss.Color("#F87171") // red for double+
+	colorEagle  = lipgloss.Color("#A78BFA") // purple for eagle
+	colorBirdie = lipgloss.Color("#34D399") // green for birdie
+	colorPar    = lipgloss.Color("#9CA3AF") // gray for par
+	colorBogey  = lipgloss.Color("#FBBF24") // yellow for bogey
+	colorDouble = lipgloss.Color("#F87171") // red for double+
 )
 
 // Styles holds all the Lip Gloss styles used in the UI.
@@ -41,36 +41,38 @@ type Styles struct {
 	HeaderBar      lipgloss.Style
 
 	// Table
-	TableHeader    lipgloss.Style
-	TableRow       lipgloss.Style
-	TableRowAlt    lipgloss.Style
-	TableDivider   lipgloss.Style
+	TableHeader  lipgloss.Style
+	TableRow     lipgloss.Style
+	TableRowAlt  lipgloss.Style
+	TableDivider lipgloss.Style
 
 	// Columns
-	Position       lipgloss.Style
-	PlayerName     lipgloss.Style
-	Country        lipgloss.Style
-	ScoreUnder     lipgloss.Style
-	ScoreOver      lipgloss.Style
-	ScoreEven      lipgloss.Style
-	RoundScore     lipgloss.Style
-	Thru           lipgloss.Style
+	Position   lipgloss.Style
+	PlayerName lipgloss.Style
+	Country    lipgloss.Style
+	ScoreUnder lipgloss.Style
+	ScoreOver  lipgloss.Style
+	ScoreEven  lipgloss.Style
+	RoundScore lipgloss.Style
+	Thru       lipgloss.Style
 
 	// Status
-	StatusCut      lipgloss.Style
-	StatusWD       lipgloss.Style
-	CutLine        lipgloss.Style
+	StatusCut lipgloss.Style
+	StatusWD  lipgloss.Style
+	CutLine   lipgloss.Style
 
 	// Status bar
-	StatusBar      lipgloss.Style
-	StatusKey      lipgloss.Style
-	StatusValue    lipgloss.Style
-	StatusDim      lipgloss.Style
+	StatusBar   lipgloss.Style
+	StatusKey   lipgloss.Style
+	StatusValue lipgloss.Style
+	StatusDim   lipgloss.Style
+	HelpPanel   lipgloss.Style
+	HelpTitle   lipgloss.Style
 
 	// General
-	App            lipgloss.Style
-	Error          lipgloss.Style
-	Loading        lipgloss.Style
+	App     lipgloss.Style
+	Error   lipgloss.Style
+	Loading lipgloss.Style
 }
 
 // DefaultStyles returns the default style set.
@@ -169,6 +171,13 @@ func DefaultStyles() Styles {
 
 		StatusDim: lipgloss.NewStyle().
 			Foreground(colorDimGray),
+
+		HelpPanel: lipgloss.NewStyle().
+			Foreground(colorGray),
+
+		HelpTitle: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(colorWhite),
 
 		// General
 		App: lipgloss.NewStyle(),

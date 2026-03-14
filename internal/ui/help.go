@@ -1,0 +1,51 @@
+package ui
+
+import "fmt"
+
+const (
+	normalHelpPanelLines = 4
+	searchHelpPanelLines = 4
+)
+
+// HelpPanelLineCount returns the number of rendered content lines in the help panel.
+func HelpPanelLineCount(searchMode bool) int {
+	if searchMode {
+		return searchHelpPanelLines
+	}
+	return normalHelpPanelLines
+}
+
+// RenderHelpPanel renders the expanded on-screen hotkey help.
+func RenderHelpPanel(width int, searchMode bool, roundMode string) string {
+	s := DefaultStyles()
+
+	var lines []string
+	if searchMode {
+		lines = []string{
+			s.HelpTitle.Render(" Hotkeys"),
+			fmt.Sprintf("  %s %s  %s %s", s.StatusKey.Render("type"), s.StatusDim.Render("filter players"), s.StatusKey.Render("backspace"), s.StatusDim.Render("delete")),
+			fmt.Sprintf("  %s %s  %s %s", s.StatusKey.Render("enter"), s.StatusDim.Render("keep filter"), s.StatusKey.Render("esc"), s.StatusDim.Render("clear + exit")),
+			fmt.Sprintf("  %s %s", s.StatusKey.Render("^c"), s.StatusDim.Render("quit")),
+		}
+	} else {
+		lines = []string{
+			s.HelpTitle.Render(" Hotkeys"),
+			fmt.Sprintf("  %s %s  %s %s  %s %s", s.StatusKey.Render("j/k"), s.StatusDim.Render("scroll"), s.StatusKey.Render("^d/^u"), s.StatusDim.Render("half page"), s.StatusKey.Render("g/G"), s.StatusDim.Render("top/bottom")),
+			fmt.Sprintf("  %s %s  %s %s  %s %s", s.StatusKey.Render("/"), s.StatusDim.Render("search"), s.StatusKey.Render("t"), s.StatusDim.Render(fmt.Sprintf("rounds (%s)", roundMode)), s.StatusKey.Render("r"), s.StatusDim.Render("refresh")),
+			fmt.Sprintf("  %s %s  %s %s", s.StatusKey.Render("?"), s.StatusDim.Render("toggle help"), s.StatusKey.Render("q"), s.StatusDim.Render("quit")),
+		}
+	}
+
+	return s.HelpPanel.Width(width).Render(joinLines(lines))
+}
+
+func joinLines(lines []string) string {
+	if len(lines) == 0 {
+		return ""
+	}
+	joined := lines[0]
+	for _, line := range lines[1:] {
+		joined += "\n" + line
+	}
+	return joined
+}
