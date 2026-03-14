@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -44,6 +45,22 @@ func testTournament(names ...string) *espn.Tournament {
 		})
 	}
 	return &espn.Tournament{Players: players}
+}
+
+type stubFavoritesStore struct {
+	loadFavorites map[string]bool
+	loadErr       error
+	saveErr       error
+	saved         []map[string]bool
+}
+
+func (s *stubFavoritesStore) Load() (map[string]bool, error) {
+	return copyFavorites(s.loadFavorites), s.loadErr
+}
+
+func (s *stubFavoritesStore) Save(favorites map[string]bool) error {
+	s.saved = append(s.saved, copyFavorites(favorites))
+	return s.saveErr
 }
 
 func TestFilterPlayersCaseInsensitive(t *testing.T) {
@@ -168,6 +185,43 @@ func TestDataFetchedSelectsFirstVisiblePlayer(t *testing.T) {
 	}
 }
 
+func TestUpdateFavoritesLoadedAppliesPersistedFavorites(t *testing.T) {
+	m := New()
+	m.height = 20
+	m.favoritesOnly = true
+	m.tournament = testTournament("Scottie Scheffler", "Rory McIlroy")
+
+	updated, _ := m.Update(FavoritesLoadedMsg{
+		Favorites: map[string]bool{"Rory McIlroy": true},
+	})
+	next := updated.(Model)
+
+	if !next.isFavorite("Rory McIlroy") {
+		t.Fatal("Rory McIlroy should be favorited after load")
+	}
+	visible := next.visiblePlayers()
+	if len(visible) != 1 || visible[0].Name != "Rory McIlroy" {
+		t.Fatalf("visible players = %+v, want only Rory after load", visible)
+	}
+	if next.selectedID != "Rory McIlroy" {
+		t.Fatalf("selectedID = %q, want Rory McIlroy", next.selectedID)
+	}
+}
+
+func TestUpdateFavoritesLoadedStoresLoadError(t *testing.T) {
+	m := New()
+
+	updated, _ := m.Update(FavoritesLoadedMsg{Err: errors.New("bad json")})
+	next := updated.(Model)
+
+	if !strings.Contains(next.favoritesErr, "Favorites load failed: bad json") {
+		t.Fatalf("favoritesErr = %q, want load error", next.favoritesErr)
+	}
+	if len(next.favorites) != 0 {
+		t.Fatalf("favorites len = %d, want 0", len(next.favorites))
+	}
+}
+
 func TestRenderLeaderboardNoMatches(t *testing.T) {
 	m := New()
 	m.width = 80
@@ -264,6 +318,65 @@ func TestHandleKeyToggleFavoriteKeepsVisibleOrder(t *testing.T) {
 	}
 	if m.selectedID != "Rory McIlroy" {
 		t.Fatalf("selectedID = %q, want Rory McIlroy", m.selectedID)
+	}
+}
+
+func TestHandleKeyToggleFavoritePersistsSelection(t *testing.T) {
+	store := &stubFavoritesStore{}
+	m := New()
+	m.height = 20
+	m.favoritesStore = store
+	m.tournament = testTournament("Scottie Scheffler", "Rory McIlroy")
+	m.syncVisibleState()
+
+	m = pressKey(t, m, keyWithText("j"))
+	m = pressKey(t, m, keyWithText("f"))
+
+	if len(store.saved) != 1 {
+		t.Fatalf("save calls = %d, want 1", len(store.saved))
+	}
+	if !store.saved[0]["Rory McIlroy"] {
+		t.Fatalf("saved favorites = %#v, want Rory McIlroy", store.saved[0])
+	}
+	if m.favoritesErr != "" {
+		t.Fatalf("favoritesErr = %q, want empty on successful save", m.favoritesErr)
+	}
+}
+
+func TestHandleKeyToggleFavoriteSaveErrorKeepsInMemoryState(t *testing.T) {
+	store := &stubFavoritesStore{saveErr: errors.New("disk full")}
+	m := New()
+	m.height = 20
+	m.favoritesStore = store
+	m.tournament = testTournament("Scottie Scheffler", "Rory McIlroy")
+	m.syncVisibleState()
+
+	m = pressKey(t, m, keyWithText("f"))
+
+	if !m.isFavorite("Scottie Scheffler") {
+		t.Fatal("Scottie Scheffler should remain favorited in memory after save failure")
+	}
+	if len(store.saved) != 1 || !store.saved[0]["Scottie Scheffler"] {
+		t.Fatalf("saved favorites = %#v, want attempted Scottie save", store.saved)
+	}
+	if !strings.Contains(m.favoritesErr, "Favorites save failed: disk full") {
+		t.Fatalf("favoritesErr = %q, want save error", m.favoritesErr)
+	}
+}
+
+func TestHandleKeyToggleFavoriteClearsPreviousSaveErrorOnSuccess(t *testing.T) {
+	store := &stubFavoritesStore{}
+	m := New()
+	m.height = 20
+	m.favoritesStore = store
+	m.favoritesErr = "Favorites save failed: disk full"
+	m.tournament = testTournament("Scottie Scheffler")
+	m.syncVisibleState()
+
+	m = pressKey(t, m, keyWithText("f"))
+
+	if m.favoritesErr != "" {
+		t.Fatalf("favoritesErr = %q, want empty after successful save", m.favoritesErr)
 	}
 }
 

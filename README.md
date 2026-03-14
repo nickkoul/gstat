@@ -45,7 +45,7 @@ go build -o gstat .
 - WD (withdrawn) player detection
 - Vim-style player search with `/`
 - Round columns default to to-par; press `t` to toggle strokes view
-- Select rows with vim-style navigation, bold favorites with `f`, and toggle a favorites-only view with `F`
+- Select rows with vim-style navigation, bold favorites with `f`, toggle a favorites-only view with `F`, and keep favorites across restarts
 - Toggle an expanded hotkey help panel with `?`
 - Scrollable with vim-style keybindings
 

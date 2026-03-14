@@ -18,6 +18,12 @@ type DataErrorMsg struct {
 	Err error
 }
 
+// FavoritesLoadedMsg is sent when persisted favorites finish loading.
+type FavoritesLoadedMsg struct {
+	Favorites map[string]bool
+	Err       error
+}
+
 // TickMsg is sent on each refresh timer tick.
 type TickMsg time.Time
 

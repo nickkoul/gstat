@@ -21,6 +21,9 @@ gstat/
 │   │   ├── helpers.go           # Date parsing helpers
 │   │   └── testdata/
 │   │       └── scoreboard.json  # Real ESPN API response fixture
+│   ├── config/
+│   │   ├── favorites.go         # Favorites persistence helpers
+│   │   └── favorites_test.go    # Config load/save/error tests
 │   ├── model/
 │   │   ├── leaderboard.go       # Main Bubble Tea model (Init/Update/View)
 │   │   └── messages.go          # Custom tea.Msg types
@@ -241,25 +244,33 @@ Completion notes:
 
 ### Feature 6 - Persist favorites
 
-- Status: planned
+- Status: complete (Mar 14, 2026)
 - Goal: persist favorites across app restarts
 - Dependencies: Feature 5
 
 Checklist:
 
-- [ ] Add config helper for reading/writing favorites
-- [ ] Use `os.UserConfigDir()` and store under `gstat/favorites.json`
-- [ ] Create config directory if missing
-- [ ] Save atomically
-- [ ] Handle missing/corrupt/unreadable config gracefully
-- [ ] Surface persistence errors non-fatally in the UI
-- [ ] Add tests for load/save/error cases
+- [x] Add config helper for reading/writing favorites
+- [x] Use `os.UserConfigDir()` and store under `gstat/favorites.json`
+- [x] Create config directory if missing
+- [x] Save atomically
+- [x] Handle missing/corrupt/unreadable config gracefully
+- [x] Surface persistence errors non-fatally in the UI
+- [x] Add tests for load/save/error cases
 
 Acceptance criteria:
 
 - Favorites survive restart
 - Corrupt config does not crash the app
 - Persistence failure does not break in-memory favorites
+
+Completion notes:
+
+- Files touched: `internal/config/favorites.go`, `internal/config/favorites_test.go`, `internal/model/leaderboard.go`, `internal/model/leaderboard_test.go`, `internal/model/messages.go`, `README.md`, `ROADMAP.md`, `DEVELOPMENT.md`
+- Tests run: `go test ./internal/config ./internal/model ./internal/ui`, `go test ./...`
+- Behavior: favorites now load from `~/.config/gstat/favorites.json` (or the platform-equivalent `os.UserConfigDir()` path) during startup and save atomically whenever a favorite is toggled
+- UI behavior: corrupted or unreadable favorites config no longer blocks the app; persistence failures stay non-fatal and surface in the status bar while in-memory favorites continue working
+- Follow-up: Feature 7 can reuse the same stable player IDs and refresh lifecycle without touching favorites persistence
 
 ### Feature 7 - Leaderboard change arrows
 

@@ -37,6 +37,9 @@ gstat/
 │   │   ├── types.go                 # ESPN API JSON structs + domain types
 │   │   ├── client.go                # HTTP client, parsing, business logic
 │   │   └── helpers.go               # Date parsing utilities
+│   ├── config/
+│   │   ├── favorites.go             # Persisted favorites config load/save
+│   │   └── favorites_test.go        # Favorites config tests
 │   ├── model/
 │   │   ├── leaderboard.go           # Bubble Tea model (Init/Update/View)
 │   │   └── messages.go              # Custom message types (tea.Msg)

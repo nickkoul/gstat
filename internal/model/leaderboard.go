@@ -6,6 +6,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/nickkoul/gstat/internal/config"
 	"github.com/nickkoul/gstat/internal/espn"
 	"github.com/nickkoul/gstat/internal/ui"
 )
@@ -25,10 +26,12 @@ const (
 // Model is the main Bubble Tea model for the leaderboard view.
 type Model struct {
 	// Data
-	tournament *espn.Tournament
-	client     *espn.Client
-	lastUpdate time.Time
-	lastError  string
+	tournament     *espn.Tournament
+	client         *espn.Client
+	favoritesStore favoritesStore
+	lastUpdate     time.Time
+	lastError      string
+	favoritesErr   string
 
 	// UI state
 	width         int
@@ -48,10 +51,16 @@ type Model struct {
 	loading         bool
 }
 
+type favoritesStore interface {
+	Load() (map[string]bool, error)
+	Save(map[string]bool) error
+}
+
 // New creates a new leaderboard model.
 func New() Model {
 	return Model{
 		client:          espn.NewClient(),
+		favoritesStore:  config.NewFavoritesStore(),
 		favorites:       make(map[string]bool),
 		refreshInterval: defaultRefreshInterval,
 		loading:         true,
@@ -63,6 +72,7 @@ func New() Model {
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.fetchData(),
+		m.loadFavorites(),
 		tickCmd(time.Second), // 1-second tick for countdown display
 	)
 }
@@ -93,6 +103,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastError = msg.Err.Error()
 		m.loading = false
 		m.nextRefreshAt = time.Now().Add(m.refreshInterval)
+		m.syncVisibleState()
+		return m, nil
+
+	case FavoritesLoadedMsg:
+		m.favorites = copyFavorites(msg.Favorites)
+		m.favoritesErr = formatFavoritesError("load", msg.Err)
 		m.syncVisibleState()
 		return m, nil
 
@@ -168,10 +184,7 @@ func (m Model) renderContent() string {
 
 	// Only show the error in the status bar if we also have tournament data
 	// (i.e., a refresh failed but we still have stale data to show)
-	statusErr := ""
-	if m.lastError != "" && m.tournament != nil {
-		statusErr = m.lastError
-	}
+	statusErr := m.statusError()
 	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr, m.filterQuery, m.searchMode, m.showHelp, string(m.roundMode), m.favoritesOnly)
 
 	return s
@@ -374,6 +387,20 @@ func (m Model) fetchData() tea.Cmd {
 	}
 }
 
+func (m Model) loadFavorites() tea.Cmd {
+	if m.favoritesStore == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+		favorites, err := m.favoritesStore.Load()
+		return FavoritesLoadedMsg{
+			Favorites: favorites,
+			Err:       err,
+		}
+	}
+}
+
 // maxRounds determines the maximum number of rounds to display columns for.
 func maxRounds(t *espn.Tournament) int {
 	max := 4 // always show 4 round columns for a standard tournament
@@ -440,6 +467,20 @@ func filterFavoritePlayers(players []espn.Player, favorites map[string]bool) []e
 		}
 	}
 	return favoritesOnly
+}
+
+func copyFavorites(favorites map[string]bool) map[string]bool {
+	if len(favorites) == 0 {
+		return make(map[string]bool)
+	}
+
+	copy := make(map[string]bool, len(favorites))
+	for playerID, favorite := range favorites {
+		if favorite {
+			copy[playerID] = true
+		}
+	}
+	return copy
 }
 
 func playerIndexByID(players []espn.Player, playerID string) int {
@@ -581,6 +622,15 @@ func (m *Model) toggleFavoriteSelected() {
 	}
 
 	m.syncVisibleState()
+	if m.favoritesStore == nil {
+		m.favoritesErr = ""
+		return
+	}
+	if err := m.favoritesStore.Save(copyFavorites(m.favorites)); err != nil {
+		m.favoritesErr = formatFavoritesError("save", err)
+		return
+	}
+	m.favoritesErr = ""
 }
 
 func (m Model) visibleRows() int {
@@ -604,4 +654,22 @@ func (m *Model) toggleRoundMode() {
 		return
 	}
 	m.roundMode = roundScoreDisplayToPar
+}
+
+func (m Model) statusError() string {
+	errors := make([]string, 0, 2)
+	if m.lastError != "" && m.tournament != nil {
+		errors = append(errors, m.lastError)
+	}
+	if m.favoritesErr != "" {
+		errors = append(errors, m.favoritesErr)
+	}
+	return strings.Join(errors, " | ")
+}
+
+func formatFavoritesError(action string, err error) string {
+	if err == nil {
+		return ""
+	}
+	return fmt.Sprintf("Favorites %s failed: %v", action, err)
 }
