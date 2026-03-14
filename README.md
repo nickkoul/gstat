@@ -6,18 +6,18 @@ Live golf tournament leaderboard in your terminal.
  THE PLAYERS Championship                    Round 2 - Play Complete
  Mar 12, 2026 - Mar 15, 2026
  ─────────────────────────────────────────────────────────────────────
- POS   PLAYER                   CTRY    TOT   R1   R2   R3   R4  THRU
- ─────────────────────────────────────────────────────────────────────
-  1    Ludvig Åberg             SWE    -12   69   63    -    -     F
- T2    Xander Schauffele        USA    -10   69   65    -    -     F
- T2    Scottie Scheffler        USA    -10   67   67    -    -     F
-  4    Cameron Young            USA     -9   68   67    -    -     F
- T5    Corey Conners            CAN     -8   69   67    -    -    12
- T5    Justin Thomas            USA     -8   68   68    -    -     F
+     POS   PLAYER                   CTRY    TOT   R1   R2   R3   R4  THRU
+ ────────────────────────────────────────────────────────────────────────
+ >   1     Ludvig Åberg             SWE    -12   69   63    -    -     F
+     T2    Xander Schauffele        USA    -10   69   65    -    -     F
+  *  T2    Scottie Scheffler        USA    -10   67   67    -    -     F
+      4    Cameron Young            USA     -9   68   67    -    -     F
+     T5    Corey Conners            CAN     -8   69   67    -    -    12
+     T5    Justin Thomas            USA     -8   68   68    -    -     F
  ──────────────────────────── CUT ────────────────────────────────
- CUT   Adam Schenk              USA     +3   77   70    -    -     F
+     CUT   Adam Schenk              USA     +3   77   70    -    -     F
 
- Updated 10:32 PM  Next 28s              ↑↓ scroll  r refresh  q quit
+ Updated 10:32 PM  Next 28s              / search  f favorite  F favorites  q quit
 ```
 
 ## Install
@@ -45,6 +45,7 @@ go build -o gstat .
 - WD (withdrawn) player detection
 - Vim-style player search with `/`
 - Round columns default to to-par; press `t` to toggle strokes view
+- Select rows with vim-style navigation, bold favorites with `f`, and toggle a favorites-only view with `F`
 - Toggle an expanded hotkey help panel with `?`
 - Scrollable with vim-style keybindings
 
@@ -52,13 +53,15 @@ go build -o gstat .
 
 | Key | Action |
 |-----|--------|
-| `j` / `↓` | Scroll down |
-| `k` / `↑` | Scroll up |
-| `Ctrl+d` / `PgDn` | Jump half page down |
-| `Ctrl+u` / `PgUp` | Jump half page up |
-| `g` / `Home` | Jump to top |
-| `G` / `End` | Jump to bottom |
+| `j` / `↓` | Move selection down |
+| `k` / `↑` | Move selection up |
+| `Ctrl+d` / `PgDn` | Move selection half page down |
+| `Ctrl+u` / `PgUp` | Move selection half page up |
+| `g` / `Home` | Jump selection to top |
+| `G` / `End` | Jump selection to bottom |
 | `/` | Start player search |
+| `f` | Toggle favorite on the selected player |
+| `F` | Toggle favorites-only view |
 | `t` | Toggle round columns between strokes and to par |
 | `?` | Toggle expanded hotkey help |
 | `Enter` | Apply current search |

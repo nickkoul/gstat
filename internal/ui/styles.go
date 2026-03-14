@@ -45,16 +45,19 @@ type Styles struct {
 	TableRow     lipgloss.Style
 	TableRowAlt  lipgloss.Style
 	TableDivider lipgloss.Style
+	SelectedRow  lipgloss.Style
 
 	// Columns
-	Position   lipgloss.Style
-	PlayerName lipgloss.Style
-	Country    lipgloss.Style
-	ScoreUnder lipgloss.Style
-	ScoreOver  lipgloss.Style
-	ScoreEven  lipgloss.Style
-	RoundScore lipgloss.Style
-	Thru       lipgloss.Style
+	Marker         lipgloss.Style
+	Position       lipgloss.Style
+	PlayerName     lipgloss.Style
+	FavoritePlayer lipgloss.Style
+	Country        lipgloss.Style
+	ScoreUnder     lipgloss.Style
+	ScoreOver      lipgloss.Style
+	ScoreEven      lipgloss.Style
+	RoundScore     lipgloss.Style
+	Thru           lipgloss.Style
 
 	// Status
 	StatusCut lipgloss.Style
@@ -112,13 +115,24 @@ func DefaultStyles() Styles {
 		TableDivider: lipgloss.NewStyle().
 			Foreground(colorBorder),
 
+		SelectedRow: lipgloss.NewStyle().
+			Background(colorBgAlt),
+
 		// Columns — width/alignment handled by padRight/padLeft in table.go
 		// to correctly handle multi-byte unicode characters (ø, ä, å, etc.)
+		Marker: lipgloss.NewStyle().
+			Foreground(colorBlue).
+			Bold(true),
+
 		Position: lipgloss.NewStyle().
 			Foreground(colorDimGray),
 
 		PlayerName: lipgloss.NewStyle().
 			Foreground(colorWhite),
+
+		FavoritePlayer: lipgloss.NewStyle().
+			Foreground(colorWhite).
+			Bold(true),
 
 		Country: lipgloss.NewStyle().
 			Foreground(colorGray),

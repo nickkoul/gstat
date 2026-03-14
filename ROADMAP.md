@@ -209,26 +209,35 @@ Completion notes:
 - Behavior: players now carry a stable ESPN athlete ID plus separate `CanonicalRank` and `DisplayPosition` fields, so tie rendering stays the same while canonical order remains available for future features
 - Follow-up: Features 5-8 can now key persistent/comparison state off stable player IDs and canonical rank without depending on visible row order
 
-### Feature 5 - Favorite/pin players
+### Feature 5 - Favorite/pin players [COMPLETE]
 
-- Status: planned
-- Goal: highlight favorite players and group them at the top of the visible leaderboard
+- Status: complete (Mar 14, 2026)
+- Goal: highlight favorite players without disturbing leaderboard order, plus support a favorites-only view
 - Dependencies: Feature 4
 
 Checklist:
 
-- [ ] Add selected-row/cursor state
-- [ ] Add favorite state keyed by stable player ID
-- [ ] Add a keybinding to toggle favorite on the selected player
-- [ ] Build a derived visible list with favorites first, preserving leaderboard order within groups
-- [ ] Add favorite marker styling in the table
-- [ ] Add tests for toggle/reorder/render behavior
+- [x] Add selected-row/cursor state
+- [x] Add favorite state keyed by stable player ID
+- [x] Add a keybinding to toggle favorite on the selected player
+- [x] Keep favorites in canonical leaderboard order during the normal view
+- [x] Add a favorites-only toggle that filters to favorites while preserving their tournament ranking
+- [x] Add favorite marker styling in the table
+- [x] Add tests for toggle/reorder/render behavior
 
 Acceptance criteria:
 
 - Selection is predictable
 - Toggling favorite updates the row immediately
-- Favorites group at the top without breaking tie/cut rendering
+- Favorites remain in place during the normal view without breaking tie/cut rendering
+- Favorites-only view shows just favorited players with their tournament positions intact
+
+Completion notes:
+
+- Files touched: `internal/model/leaderboard.go`, `internal/model/leaderboard_test.go`, `internal/ui/table.go`, `internal/ui/styles.go`, `internal/ui/statusbar.go`, `internal/ui/help.go`, `internal/ui/render_test.go`, `README.md`
+- Tests run: `go test ./internal/model`, `go test ./internal/ui`, `go test ./...`
+- Behavior: the leaderboard now keeps a selected row, toggles favorites with `f`, leaves favorites in canonical order during the normal view, and toggles a favorites-only filtered view with `F` that preserves tournament positions
+- Follow-up: Feature 6 can persist the in-memory favorites map directly because it is already keyed by stable player ID
 
 ### Feature 6 - Persist favorites
 

@@ -3,7 +3,7 @@ package ui
 import "fmt"
 
 const (
-	normalHelpPanelLines = 4
+	normalHelpPanelLines = 5
 	searchHelpPanelLines = 4
 )
 
@@ -16,7 +16,7 @@ func HelpPanelLineCount(searchMode bool) int {
 }
 
 // RenderHelpPanel renders the expanded on-screen hotkey help.
-func RenderHelpPanel(width int, searchMode bool, roundMode string) string {
+func RenderHelpPanel(width int, searchMode bool, roundMode string, favoritesOnly bool) string {
 	s := DefaultStyles()
 
 	var lines []string
@@ -28,11 +28,16 @@ func RenderHelpPanel(width int, searchMode bool, roundMode string) string {
 			fmt.Sprintf("  %s %s", s.StatusKey.Render("^c"), s.StatusDim.Render("quit")),
 		}
 	} else {
+		favoriteViewLabel := "favorites only"
+		if favoritesOnly {
+			favoriteViewLabel = "all players"
+		}
 		lines = []string{
 			s.HelpTitle.Render(" Hotkeys"),
-			fmt.Sprintf("  %s %s  %s %s  %s %s", s.StatusKey.Render("j/k"), s.StatusDim.Render("scroll"), s.StatusKey.Render("^d/^u"), s.StatusDim.Render("half page"), s.StatusKey.Render("g/G"), s.StatusDim.Render("top/bottom")),
-			fmt.Sprintf("  %s %s  %s %s  %s %s", s.StatusKey.Render("/"), s.StatusDim.Render("search"), s.StatusKey.Render("t"), s.StatusDim.Render(fmt.Sprintf("rounds (%s)", roundMode)), s.StatusKey.Render("r"), s.StatusDim.Render("refresh")),
-			fmt.Sprintf("  %s %s  %s %s", s.StatusKey.Render("?"), s.StatusDim.Render("toggle help"), s.StatusKey.Render("q"), s.StatusDim.Render("quit")),
+			fmt.Sprintf("  %s %s  %s %s  %s %s", s.StatusKey.Render("j/k"), s.StatusDim.Render("move"), s.StatusKey.Render("^d/^u"), s.StatusDim.Render("half page"), s.StatusKey.Render("g/G"), s.StatusDim.Render("top/bottom")),
+			fmt.Sprintf("  %s %s  %s %s  %s %s", s.StatusKey.Render("f"), s.StatusDim.Render("favorite"), s.StatusKey.Render("F"), s.StatusDim.Render(favoriteViewLabel), s.StatusKey.Render("/"), s.StatusDim.Render("search")),
+			fmt.Sprintf("  %s %s  %s %s", s.StatusKey.Render("t"), s.StatusDim.Render(fmt.Sprintf("rounds (%s)", roundMode)), s.StatusKey.Render("?"), s.StatusDim.Render("toggle help")),
+			fmt.Sprintf("  %s %s", s.StatusKey.Render("q"), s.StatusDim.Render("quit")),
 		}
 	}
 

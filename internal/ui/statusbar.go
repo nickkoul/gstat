@@ -11,7 +11,7 @@ type statusSegment struct {
 }
 
 // RenderStatusBar renders the bottom status bar with last update time and keybinds.
-func RenderStatusBar(lastUpdate time.Time, nextRefresh time.Duration, width int, errMsg string, filterQuery string, searchMode bool, showHelp bool, roundMode string) string {
+func RenderStatusBar(lastUpdate time.Time, nextRefresh time.Duration, width int, errMsg string, filterQuery string, searchMode bool, showHelp bool, roundMode string, favoritesOnly bool) string {
 	s := DefaultStyles()
 
 	var leftSegments []statusSegment
@@ -48,6 +48,13 @@ func RenderStatusBar(lastUpdate time.Time, nextRefresh time.Duration, width int,
 		leftSegments = append(leftSegments, newStatusSegment(fmt.Sprintf("%s %s",
 			s.StatusDim.Render("Rounds"),
 			s.StatusValue.Render(roundMode),
+		)))
+	}
+
+	if favoritesOnly {
+		leftSegments = append(leftSegments, newStatusSegment(fmt.Sprintf("%s %s",
+			s.StatusDim.Render("View"),
+			s.StatusValue.Render("favorites"),
 		)))
 	}
 
@@ -143,11 +150,15 @@ func buildRightCandidates(s Styles, searchMode bool, helpLabel string) []statusS
 	}
 
 	return []statusSegment{
-		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s  %s %s ",
+		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s  %s %s  %s %s  %s %s ",
 			s.StatusKey.Render("?"),
 			s.StatusDim.Render(helpLabel),
 			s.StatusKey.Render("/"),
 			s.StatusDim.Render("search"),
+			s.StatusKey.Render("f"),
+			s.StatusDim.Render("favorite"),
+			s.StatusKey.Render("F"),
+			s.StatusDim.Render("favorites only"),
 			s.StatusKey.Render("t"),
 			s.StatusDim.Render("rounds"),
 			s.StatusKey.Render("r"),
@@ -155,11 +166,13 @@ func buildRightCandidates(s Styles, searchMode bool, helpLabel string) []statusS
 			s.StatusKey.Render("q"),
 			s.StatusDim.Render("quit"),
 		)),
-		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s ",
+		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s ",
 			s.StatusKey.Render("?"),
 			s.StatusDim.Render(helpLabel),
 			s.StatusKey.Render("/"),
 			s.StatusDim.Render("search"),
+			s.StatusKey.Render("F"),
+			s.StatusDim.Render("favorites only"),
 			s.StatusKey.Render("q"),
 			s.StatusDim.Render("quit"),
 		)),

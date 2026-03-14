@@ -153,6 +153,21 @@ func TestDataFetchedPreservesActiveFilter(t *testing.T) {
 	}
 }
 
+func TestDataFetchedSelectsFirstVisiblePlayer(t *testing.T) {
+	m := New()
+	m.height = 20
+
+	updated, _ := m.Update(DataFetchedMsg{
+		Tournament: testTournament("Scottie Scheffler", "Rory McIlroy"),
+		FetchedAt:  time.Now(),
+	})
+	next := updated.(Model)
+
+	if next.selectedID != "Scottie Scheffler" {
+		t.Fatalf("selectedID = %q, want Scottie Scheffler", next.selectedID)
+	}
+}
+
 func TestRenderLeaderboardNoMatches(t *testing.T) {
 	m := New()
 	m.width = 80
@@ -163,6 +178,21 @@ func TestRenderLeaderboardNoMatches(t *testing.T) {
 	out := m.renderLeaderboard()
 	if !strings.Contains(out, "No players match \"zzz\"") {
 		t.Fatalf("expected no-match message, got %q", out)
+	}
+}
+
+func TestRenderLeaderboardShowsFavoritesOnlyLabel(t *testing.T) {
+	m := New()
+	m.width = 80
+	m.height = 20
+	m.favoritesOnly = true
+	m.tournament = testTournament("Scottie Scheffler")
+	m.favorites["Scottie Scheffler"] = true
+	m.syncVisibleState()
+
+	out := m.renderLeaderboard()
+	if !strings.Contains(out, "Favorites only") {
+		t.Fatalf("expected favorites-only label, got %q", out)
 	}
 }
 
@@ -193,6 +223,128 @@ func TestHandleKeyTogglesHelpPanel(t *testing.T) {
 	m = pressKey(t, m, keyWithText("?"))
 	if m.showHelp {
 		t.Fatal("showHelp = true, want false")
+	}
+}
+
+func TestHandleKeyMovesSelection(t *testing.T) {
+	m := New()
+	m.height = 20
+	m.tournament = testTournament("Scottie Scheffler", "Rory McIlroy", "Xander Schauffele")
+	m.syncVisibleState()
+
+	m = pressKey(t, m, keyWithText("j"))
+	if m.selectedID != "Rory McIlroy" {
+		t.Fatalf("selectedID after j = %q, want Rory McIlroy", m.selectedID)
+	}
+
+	m = pressKey(t, m, keyWithText("k"))
+	if m.selectedID != "Scottie Scheffler" {
+		t.Fatalf("selectedID after k = %q, want Scottie Scheffler", m.selectedID)
+	}
+}
+
+func TestHandleKeyToggleFavoriteKeepsVisibleOrder(t *testing.T) {
+	m := New()
+	m.height = 20
+	m.tournament = testTournament("Scottie Scheffler", "Rory McIlroy", "Xander Schauffele")
+	m.syncVisibleState()
+
+	m = pressKey(t, m, keyWithText("j"))
+	m = pressKey(t, m, keyWithText("f"))
+
+	visible := m.visiblePlayers()
+	if len(visible) != 3 {
+		t.Fatalf("visible players len = %d, want 3", len(visible))
+	}
+	if visible[0].Name != "Scottie Scheffler" {
+		t.Fatalf("visible[0] = %q, want Scottie Scheffler to stay first", visible[0].Name)
+	}
+	if !m.isFavorite("Rory McIlroy") {
+		t.Fatal("Rory McIlroy should be favorited")
+	}
+	if m.selectedID != "Rory McIlroy" {
+		t.Fatalf("selectedID = %q, want Rory McIlroy", m.selectedID)
+	}
+}
+
+func TestVisiblePlayersNormalModeKeepsCanonicalOrder(t *testing.T) {
+	m := New()
+	m.tournament = testTournament("Scottie Scheffler", "Rory McIlroy", "Xander Schauffele", "Tommy Fleetwood")
+	m.favorites["Rory McIlroy"] = true
+	m.favorites["Tommy Fleetwood"] = true
+
+	visible := m.visiblePlayers()
+	got := []string{visible[0].Name, visible[1].Name, visible[2].Name, visible[3].Name}
+	want := []string{"Scottie Scheffler", "Rory McIlroy", "Xander Schauffele", "Tommy Fleetwood"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("visible order = %v, want %v", got, want)
+	}
+}
+
+func TestVisiblePlayersFavoritesRespectFilterInNormalMode(t *testing.T) {
+	m := New()
+	m.tournament = testTournament("Scottie Scheffler", "Shane Lowry", "Xander Schauffele")
+	m.favorites["Shane Lowry"] = true
+	m.filterQuery = "s"
+
+	visible := m.visiblePlayers()
+	got := []string{visible[0].Name, visible[1].Name, visible[2].Name}
+	want := []string{"Scottie Scheffler", "Shane Lowry", "Xander Schauffele"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("visible order = %v, want %v", got, want)
+	}
+}
+
+func TestVisiblePlayersFavoritesOnlyFiltersAndKeepsTournamentRank(t *testing.T) {
+	m := New()
+	m.favoritesOnly = true
+	m.tournament = &espn.Tournament{Players: []espn.Player{
+		{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-10", Thru: "F"},
+		{ID: "rory", CanonicalRank: 5, DisplayPosition: 5, Tied: true, Name: "Rory McIlroy", TotalScore: "-8", Thru: "F"},
+		{ID: "xander", CanonicalRank: 8, DisplayPosition: 8, Tied: true, Name: "Xander Schauffele", TotalScore: "-8", Thru: "F"},
+		{ID: "tommy", CanonicalRank: 12, DisplayPosition: 12, Name: "Tommy Fleetwood", TotalScore: "-4", Thru: "F"},
+	}}
+	m.favorites["rory"] = true
+	m.favorites["xander"] = true
+	m.favorites["tommy"] = true
+
+	visible := m.visiblePlayers()
+	if len(visible) != 3 {
+		t.Fatalf("visible players len = %d, want 3", len(visible))
+	}
+	if visible[0].Name != "Rory McIlroy" || visible[0].DisplayPosition != 5 || !visible[0].Tied {
+		t.Fatalf("visible[0] = %+v, want Rory as T5", visible[0])
+	}
+	if visible[1].Name != "Xander Schauffele" || visible[1].DisplayPosition != 8 || !visible[1].Tied {
+		t.Fatalf("visible[1] = %+v, want Xander as T8", visible[1])
+	}
+	if visible[2].Name != "Tommy Fleetwood" || visible[2].DisplayPosition != 12 {
+		t.Fatalf("visible[2] = %+v, want Tommy as 12", visible[2])
+	}
+	if visible[0].CanonicalRank != 5 || visible[1].CanonicalRank != 8 || visible[2].CanonicalRank != 12 {
+		t.Fatalf("canonical ranks = %d,%d,%d, want 5,8,12", visible[0].CanonicalRank, visible[1].CanonicalRank, visible[2].CanonicalRank)
+	}
+}
+
+func TestHandleKeyTogglesFavoritesOnlyMode(t *testing.T) {
+	m := New()
+	m.height = 20
+	m.tournament = testTournament("Scottie Scheffler", "Rory McIlroy", "Xander Schauffele")
+	m.favorites["Rory McIlroy"] = true
+	m.syncVisibleState()
+
+	m = pressKey(t, m, keyWithText("F"))
+	if !m.favoritesOnly {
+		t.Fatal("favoritesOnly = false, want true")
+	}
+	visible := m.visiblePlayers()
+	if len(visible) != 1 || visible[0].Name != "Rory McIlroy" {
+		t.Fatalf("visible players = %+v, want only Rory", visible)
+	}
+
+	m = pressKey(t, m, keyWithText("F"))
+	if m.favoritesOnly {
+		t.Fatal("favoritesOnly = true, want false")
 	}
 }
 

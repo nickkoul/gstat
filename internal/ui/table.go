@@ -10,12 +10,13 @@ import (
 
 // Column widths
 const (
-	colPos   = 5
-	colName  = 24
-	colCtry  = 5
-	colScore = 6
-	colRound = 5
-	colThru  = 5
+	colMarker = 2
+	colPos    = 5
+	colName   = 24
+	colCtry   = 5
+	colScore  = 6
+	colRound  = 5
+	colThru   = 5
 )
 
 // countryEmoji maps common country codes to flag emojis.
@@ -36,6 +37,7 @@ var countryEmoji = map[string]string{
 func RenderTableHeader(width int, totalRounds int) string {
 	s := DefaultStyles()
 
+	marker := padRight("", colMarker)
 	pos := padRight("POS", colPos)
 	name := padRight("PLAYER", colName)
 	ctry := padRight("CTRY", colCtry)
@@ -48,8 +50,8 @@ func RenderTableHeader(width int, totalRounds int) string {
 
 	thru := padLeft("THRU", colThru)
 
-	header := fmt.Sprintf("%s %s %s %s%s %s",
-		pos, name, ctry, score, rounds, thru)
+	header := fmt.Sprintf("%s %s %s %s %s%s %s",
+		marker, pos, name, ctry, score, rounds, thru)
 
 	// Trim or pad to width
 	headerStyled := s.TableHeader.Width(width).Render(header)
@@ -57,8 +59,10 @@ func RenderTableHeader(width int, totalRounds int) string {
 }
 
 // RenderPlayerRow renders a single player row in the leaderboard.
-func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLine int, showRoundScoresToPar bool) string {
+func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLine int, showRoundScoresToPar bool, selected bool, favorite bool) string {
 	s := DefaultStyles()
+
+	marker := s.Marker.Render(padRight(formatMarker(selected, favorite), colMarker))
 
 	// Position display with tie indicator
 	posStr := formatPosition(p)
@@ -75,7 +79,11 @@ func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLi
 	case "WD":
 		nameStyled = s.StatusWD.Render(nameStr)
 	default:
-		nameStyled = s.PlayerName.Render(nameStr)
+		if favorite {
+			nameStyled = s.FavoritePlayer.Render(nameStr)
+		} else {
+			nameStyled = s.PlayerName.Render(nameStr)
+		}
 	}
 
 	// Country
@@ -107,8 +115,11 @@ func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLi
 		thruStyled = s.Thru.Render(thruStr)
 	}
 
-	row := fmt.Sprintf("%s %s %s %s%s %s",
-		posStyled, nameStyled, ctryStyled, scoreStyled, roundsStyled, thruStyled)
+	row := fmt.Sprintf("%s %s %s %s %s%s %s",
+		marker, posStyled, nameStyled, ctryStyled, scoreStyled, roundsStyled, thruStyled)
+	if selected {
+		return s.SelectedRow.Width(width).Render(row)
+	}
 
 	return row
 }
@@ -171,6 +182,19 @@ func formatPosition(p espn.Player) string {
 		return fmt.Sprintf("T%d", p.DisplayPosition)
 	}
 	return fmt.Sprintf("%d", p.DisplayPosition)
+}
+
+func formatMarker(selected bool, favorite bool) string {
+	switch {
+	case selected && favorite:
+		return ">*"
+	case selected:
+		return ">"
+	case favorite:
+		return "*"
+	default:
+		return ""
+	}
 }
 
 // formatCountry converts country code to display string.

@@ -31,13 +31,16 @@ type Model struct {
 	lastError  string
 
 	// UI state
-	width       int
-	height      int
-	scrollPos   int
-	filterQuery string
-	searchMode  bool
-	roundMode   roundScoreDisplayMode
-	showHelp    bool
+	width         int
+	height        int
+	scrollPos     int
+	favorites     map[string]bool
+	selectedID    string
+	filterQuery   string
+	favoritesOnly bool
+	searchMode    bool
+	roundMode     roundScoreDisplayMode
+	showHelp      bool
 
 	// Refresh
 	refreshInterval time.Duration
@@ -49,6 +52,7 @@ type Model struct {
 func New() Model {
 	return Model{
 		client:          espn.NewClient(),
+		favorites:       make(map[string]bool),
 		refreshInterval: defaultRefreshInterval,
 		loading:         true,
 		roundMode:       roundScoreDisplayToPar,
@@ -70,7 +74,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.clampScroll()
+		m.syncVisibleState()
 		return m, nil
 
 	case tea.KeyMsg:
@@ -82,14 +86,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastError = ""
 		m.loading = false
 		m.nextRefreshAt = time.Now().Add(m.refreshInterval)
-		m.clampScroll()
+		m.syncVisibleState()
 		return m, nil
 
 	case DataErrorMsg:
 		m.lastError = msg.Err.Error()
 		m.loading = false
 		m.nextRefreshAt = time.Now().Add(m.refreshInterval)
-		m.clampScroll()
+		m.syncVisibleState()
 		return m, nil
 
 	case TickMsg:
@@ -133,7 +137,7 @@ func (m Model) renderContent() string {
 	s += "\n"
 
 	if m.showHelp {
-		s += ui.RenderHelpPanel(m.width, m.searchMode, string(m.roundMode))
+		s += ui.RenderHelpPanel(m.width, m.searchMode, string(m.roundMode), m.favoritesOnly)
 		s += "\n"
 	}
 
@@ -168,7 +172,7 @@ func (m Model) renderContent() string {
 	if m.lastError != "" && m.tournament != nil {
 		statusErr = m.lastError
 	}
-	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr, m.filterQuery, m.searchMode, m.showHelp, string(m.roundMode))
+	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr, m.filterQuery, m.searchMode, m.showHelp, string(m.roundMode), m.favoritesOnly)
 
 	return s
 }
@@ -181,9 +185,15 @@ func (m Model) renderLeaderboard() string {
 	}
 
 	t := m.tournament
-	players := m.filteredPlayers()
+	players := m.visiblePlayers()
 	if len(players) == 0 {
 		styles := ui.DefaultStyles()
+		if m.favoritesOnly {
+			if m.filterQuery != "" {
+				return styles.StatusDim.Render(fmt.Sprintf("  No favorites match %q\n", m.filterQuery))
+			}
+			return styles.StatusDim.Render("  No favorite players selected\n")
+		}
 		if m.filterQuery != "" {
 			return styles.StatusDim.Render(fmt.Sprintf("  No players match %q\n", m.filterQuery))
 		}
@@ -194,6 +204,11 @@ func (m Model) renderLeaderboard() string {
 	totalRounds := maxRounds(t)
 
 	var s string
+	styles := ui.DefaultStyles()
+	if m.favoritesOnly {
+		s += styles.StatusValue.Render("  Favorites only")
+		s += "\n"
+	}
 
 	// Table header
 	s += ui.RenderTableHeader(m.width, totalRounds)
@@ -223,7 +238,16 @@ func (m Model) renderLeaderboard() string {
 			s += "\n"
 		}
 
-		s += ui.RenderPlayerRow(p, i, m.width, totalRounds, cutLine, m.roundMode == roundScoreDisplayToPar)
+		s += ui.RenderPlayerRow(
+			p,
+			i,
+			m.width,
+			totalRounds,
+			cutLine,
+			m.roundMode == roundScoreDisplayToPar,
+			p.ID == m.selectedID,
+			m.isFavorite(p.ID),
+		)
 		s += "\n"
 	}
 
@@ -261,59 +285,38 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case "up", "k":
-		if m.scrollPos > 0 {
-			m.scrollPos--
-		}
+		m.moveSelection(-1)
 		return m, nil
 
 	case "down", "j":
-		if m.tournament != nil {
-			visibleRows := m.visibleRows()
-			maxScroll := len(m.tournament.Players) - visibleRows
-			if maxScroll < 0 {
-				maxScroll = 0
-			}
-			if m.scrollPos < maxScroll {
-				m.scrollPos++
-			}
-		}
+		m.moveSelection(1)
 		return m, nil
 
 	case "ctrl+u", "pgup":
-		visibleRows := m.visibleRows()
-		m.scrollPos -= visibleRows / 2
-		if m.scrollPos < 0 {
-			m.scrollPos = 0
-		}
+		step := max(1, m.visibleRows()/2)
+		m.moveSelection(-step)
 		return m, nil
 
 	case "ctrl+d", "pgdown":
-		if m.tournament != nil {
-			visibleRows := m.visibleRows()
-			maxScroll := len(m.tournament.Players) - visibleRows
-			if maxScroll < 0 {
-				maxScroll = 0
-			}
-			m.scrollPos += visibleRows / 2
-			if m.scrollPos > maxScroll {
-				m.scrollPos = maxScroll
-			}
-		}
+		step := max(1, m.visibleRows()/2)
+		m.moveSelection(step)
 		return m, nil
 
 	case "home", "g":
-		m.scrollPos = 0
+		m.selectFirstVisible()
 		return m, nil
 
 	case "end", "G":
-		if m.tournament != nil {
-			visibleRows := m.visibleRows()
-			maxScroll := len(m.tournament.Players) - visibleRows
-			if maxScroll < 0 {
-				maxScroll = 0
-			}
-			m.scrollPos = maxScroll
-		}
+		m.selectLastVisible()
+		return m, nil
+
+	case "f":
+		m.toggleFavoriteSelected()
+		return m, nil
+
+	case "F":
+		m.favoritesOnly = !m.favoritesOnly
+		m.syncVisibleState()
 		return m, nil
 
 	case "r":
@@ -398,6 +401,18 @@ func (m Model) filteredPlayers() []espn.Player {
 	return filterPlayers(m.tournament.Players, m.filterQuery)
 }
 
+func (m Model) visiblePlayers() []espn.Player {
+	players := m.filteredPlayers()
+	if !m.favoritesOnly {
+		return players
+	}
+	return filterFavoritePlayers(players, m.favorites)
+}
+
+func (m Model) isFavorite(playerID string) bool {
+	return m.favorites[playerID]
+}
+
 func filterPlayers(players []espn.Player, query string) []espn.Player {
 	query = strings.TrimSpace(strings.ToLower(query))
 	if query == "" {
@@ -413,14 +428,40 @@ func filterPlayers(players []espn.Player, query string) []espn.Player {
 	return filtered
 }
 
+func filterFavoritePlayers(players []espn.Player, favorites map[string]bool) []espn.Player {
+	if len(players) == 0 || len(favorites) == 0 {
+		return nil
+	}
+
+	favoritesOnly := make([]espn.Player, 0, len(players))
+	for _, p := range players {
+		if favorites[p.ID] {
+			favoritesOnly = append(favoritesOnly, p)
+		}
+	}
+	return favoritesOnly
+}
+
+func playerIndexByID(players []espn.Player, playerID string) int {
+	if playerID == "" {
+		return -1
+	}
+	for i, p := range players {
+		if p.ID == playerID {
+			return i
+		}
+	}
+	return -1
+}
+
 func (m *Model) setFilterQuery(query string) {
 	m.filterQuery = query
 	m.scrollPos = 0
-	m.clampScroll()
+	m.syncVisibleState()
 }
 
 func (m *Model) clampScroll() {
-	players := m.filteredPlayers()
+	players := m.visiblePlayers()
 	visibleRows := m.visibleRows()
 
 	maxScroll := len(players) - visibleRows
@@ -433,6 +474,113 @@ func (m *Model) clampScroll() {
 	if m.scrollPos < 0 {
 		m.scrollPos = 0
 	}
+}
+
+func (m *Model) syncVisibleState() {
+	players := m.visiblePlayers()
+	if len(players) == 0 {
+		m.selectedID = ""
+		m.scrollPos = 0
+		return
+	}
+
+	if playerIndexByID(players, m.selectedID) < 0 {
+		m.selectedID = players[0].ID
+	}
+
+	m.clampScroll()
+	m.ensureSelectionVisible()
+}
+
+func (m *Model) ensureSelectionVisible() {
+	players := m.visiblePlayers()
+	selectedIdx := playerIndexByID(players, m.selectedID)
+	if selectedIdx < 0 {
+		return
+	}
+
+	visibleRows := m.visibleRows()
+	maxScroll := len(players) - visibleRows
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+
+	upperBound := m.scrollPos + scrollPadding
+	lowerBound := m.scrollPos + visibleRows - scrollPadding - 1
+	if lowerBound < m.scrollPos {
+		lowerBound = m.scrollPos
+	}
+
+	if selectedIdx < upperBound {
+		m.scrollPos = selectedIdx - scrollPadding
+	} else if selectedIdx > lowerBound {
+		m.scrollPos = selectedIdx - visibleRows + scrollPadding + 1
+	}
+
+	if m.scrollPos < 0 {
+		m.scrollPos = 0
+	}
+	if m.scrollPos > maxScroll {
+		m.scrollPos = maxScroll
+	}
+}
+
+func (m *Model) moveSelection(delta int) {
+	players := m.visiblePlayers()
+	if len(players) == 0 {
+		return
+	}
+
+	selectedIdx := playerIndexByID(players, m.selectedID)
+	if selectedIdx < 0 {
+		selectedIdx = 0
+	}
+
+	selectedIdx += delta
+	if selectedIdx < 0 {
+		selectedIdx = 0
+	}
+	if selectedIdx >= len(players) {
+		selectedIdx = len(players) - 1
+	}
+
+	m.selectedID = players[selectedIdx].ID
+	m.ensureSelectionVisible()
+}
+
+func (m *Model) selectFirstVisible() {
+	players := m.visiblePlayers()
+	if len(players) == 0 {
+		return
+	}
+	m.selectedID = players[0].ID
+	m.ensureSelectionVisible()
+}
+
+func (m *Model) selectLastVisible() {
+	players := m.visiblePlayers()
+	if len(players) == 0 {
+		return
+	}
+	m.selectedID = players[len(players)-1].ID
+	m.ensureSelectionVisible()
+}
+
+func (m *Model) toggleFavoriteSelected() {
+	players := m.visiblePlayers()
+	selectedIdx := playerIndexByID(players, m.selectedID)
+	if selectedIdx < 0 {
+		return
+	}
+
+	playerID := players[selectedIdx].ID
+	if m.isFavorite(playerID) {
+		delete(m.favorites, playerID)
+	} else {
+		m.favorites[playerID] = true
+	}
+
+	m.syncVisibleState()
 }
 
 func (m Model) visibleRows() int {

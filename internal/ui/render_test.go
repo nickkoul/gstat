@@ -122,7 +122,7 @@ func TestRenderPlayerRowLeader(t *testing.T) {
 		Rounds: makeRounds(69, 63, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	mustContain(t, out, "position", "1")
 	mustContain(t, out, "name", "Ludvig")
@@ -141,9 +141,22 @@ func TestRenderPlayerRowTied(t *testing.T) {
 		Rounds: makeRounds(69, 67, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	mustContain(t, out, "tied position", "T4")
+}
+
+func TestRenderPlayerRowSelectedFavorite(t *testing.T) {
+	player := espn.Player{
+		ID: "4375972", CanonicalRank: 1, DisplayPosition: 1,
+		Name: "Ludvig Åberg", CountryCode: "swe",
+		TotalScore: "-12", Thru: "F",
+		Rounds: makeRounds(69, 63, 0, 0),
+	}
+
+	out := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, false, true, true))
+
+	mustContain(t, out, "selection and favorite marker", ">*")
 }
 
 func TestRenderPlayerRowNotTied(t *testing.T) {
@@ -154,7 +167,7 @@ func TestRenderPlayerRowNotTied(t *testing.T) {
 		Rounds: makeRounds(68, 67, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	// Should show "3" not "T3"
 	mustNotContain(t, out, "no T prefix", "T3")
@@ -169,7 +182,7 @@ func TestRenderPlayerRowCUT(t *testing.T) {
 		Rounds: makeRounds(77, 70, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, 0, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, 0, false, false, false)
 
 	mustContain(t, out, "CUT status", "CUT")
 	mustContain(t, out, "over par score", "+3")
@@ -184,7 +197,7 @@ func TestRenderPlayerRowWD(t *testing.T) {
 		Rounds: makeRounds(0, 0, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	mustContain(t, out, "WD status", "WD")
 	mustContain(t, out, "name", "Collin Morikawa")
@@ -198,7 +211,7 @@ func TestRenderPlayerRowEvenPar(t *testing.T) {
 		Rounds: makeRounds(72, 72, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	mustContain(t, out, "even par", "E")
 }
@@ -211,7 +224,7 @@ func TestRenderPlayerRowOverPar(t *testing.T) {
 		Rounds: makeRounds(77, 72, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	mustContain(t, out, "over par score", "+5")
 }
@@ -224,7 +237,7 @@ func TestRenderPlayerRowLongNameTruncation(t *testing.T) {
 		Rounds: makeRounds(67, 0, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	// Should not panic, and should contain some truncated version
 	if out == "" {
@@ -245,7 +258,7 @@ func TestRenderPlayerRowUnplayedRounds(t *testing.T) {
 		Rounds: makeRounds(69, 0, 0, 0), // only R1 played
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	mustContain(t, out, "R1 strokes", "69")
 	// Unplayed rounds should show "-"
@@ -265,7 +278,7 @@ func TestRenderPlayerRowEmptyCountry(t *testing.T) {
 		Rounds: makeRounds(67, 0, 0, 0),
 	}
 
-	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false)
+	out := ui.RenderPlayerRow(player, 0, 80, 4, -1, false, false, false)
 
 	// Should show "---" for empty country
 	mustContain(t, out, "empty country", "---")
@@ -301,10 +314,10 @@ func TestRenderPlayerRowUnicodeAlignment(t *testing.T) {
 		Rounds: makeRounds(70, 0, 0, 0),
 	}
 
-	asciiRow := stripANSI(ui.RenderPlayerRow(ascii, 0, 80, 4, -1, false))
-	row1 := stripANSI(ui.RenderPlayerRow(unicode1, 1, 80, 4, -1, false))
-	row2 := stripANSI(ui.RenderPlayerRow(unicode2, 2, 80, 4, -1, false))
-	row3 := stripANSI(ui.RenderPlayerRow(unicode3, 3, 80, 4, -1, false))
+	asciiRow := stripANSI(ui.RenderPlayerRow(ascii, 0, 80, 4, -1, false, false, false))
+	row1 := stripANSI(ui.RenderPlayerRow(unicode1, 1, 80, 4, -1, false, false, false))
+	row2 := stripANSI(ui.RenderPlayerRow(unicode2, 2, 80, 4, -1, false, false, false))
+	row3 := stripANSI(ui.RenderPlayerRow(unicode3, 3, 80, 4, -1, false, false, false))
 
 	// Find the display column (not byte offset) of the country code.
 	// We need to measure display width up to the match, not byte offset,
@@ -365,33 +378,35 @@ func TestRenderCutLine(t *testing.T) {
 
 func TestRenderStatusBar(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 25*time.Second, 120, "", "", false, false, "strokes")
+	out := ui.RenderStatusBar(now, 25*time.Second, 160, "", "", false, false, "strokes", false)
 
 	mustContain(t, out, "refresh countdown", "25s")
 	mustContain(t, out, "quit hint", "quit")
 	mustContain(t, out, "refresh hint", "refresh")
 	mustContain(t, out, "search hint", "search")
 	mustContain(t, out, "round mode", "strokes")
-	mustContain(t, out, "round toggle hint", "rounds")
+	mustContain(t, out, "round label", "Rounds")
+	mustContain(t, out, "favorite hint", "favorite")
+	mustContain(t, out, "favorites view hint", "favorites only")
 	mustContain(t, out, "help hint", "show hints")
 }
 
 func TestRenderStatusBarWithError(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 120, "connection refused", "", false, false, "strokes")
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "connection refused", "", false, false, "strokes", false)
 
 	mustContain(t, out, "error message", "connection refused")
 }
 
 func TestRenderStatusBarZeroTime(t *testing.T) {
-	out := ui.RenderStatusBar(time.Time{}, 0, 120, "", "", false, false, "strokes")
+	out := ui.RenderStatusBar(time.Time{}, 0, 120, "", "", false, false, "strokes", false)
 
 	mustContain(t, out, "fetching message", "Fetching")
 }
 
 func TestRenderStatusBarSearchMode(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "schef", true, false, "to par")
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "schef", true, false, "to par", false)
 
 	mustContain(t, out, "filter query", "/schef")
 	mustContain(t, out, "search mode", "search")
@@ -403,14 +418,14 @@ func TestRenderStatusBarSearchMode(t *testing.T) {
 
 func TestRenderStatusBarHelpVisible(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "", false, true, "to par")
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "", false, true, "to par", false)
 
 	mustContain(t, out, "hide hint label", "hide hints")
 }
 
 func TestRenderStatusBarNarrowWidthKeepsHelpHint(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 60, "", "scheffler", false, false, "to par")
+	out := ui.RenderStatusBar(now, 10*time.Second, 60, "", "scheffler", false, false, "to par", false)
 
 	mustContain(t, out, "show hint survives narrow width", "show hints")
 }
@@ -428,7 +443,7 @@ func TestRenderPlayerRowToParMode(t *testing.T) {
 		},
 	}
 
-	out := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, true))
+	out := stripANSI(ui.RenderPlayerRow(player, 0, 80, 4, -1, true, false, false))
 	mustContain(t, out, "round one to par", "-5")
 	mustContain(t, out, "round two to par", "E")
 	mustContain(t, out, "round three to par", "+2")
@@ -439,21 +454,37 @@ func TestRenderPlayerRowToParMode(t *testing.T) {
 }
 
 func TestRenderHelpPanelNormalMode(t *testing.T) {
-	out := ui.RenderHelpPanel(80, false, "to par")
+	out := ui.RenderHelpPanel(80, false, "to par", false)
 
 	mustContain(t, out, "title", "Hotkeys")
-	mustContain(t, out, "scroll hint", "scroll")
+	mustContain(t, out, "move hint", "move")
+	mustContain(t, out, "favorite hint", "favorite")
+	mustContain(t, out, "favorites toggle hint", "favorites only")
 	mustContain(t, out, "search hint", "search")
 	mustContain(t, out, "round mode hint", "rounds (to par)")
 	mustContain(t, out, "toggle help hint", "toggle help")
 }
 
+func TestRenderHelpPanelFavoritesOnlyMode(t *testing.T) {
+	out := ui.RenderHelpPanel(80, false, "to par", true)
+
+	mustContain(t, out, "favorites toggle label in active mode", "all players")
+}
+
 func TestRenderHelpPanelSearchMode(t *testing.T) {
-	out := ui.RenderHelpPanel(80, true, "to par")
+	out := ui.RenderHelpPanel(80, true, "to par", false)
 
 	mustContain(t, out, "title", "Hotkeys")
 	mustContain(t, out, "typing hint", "filter players")
 	mustContain(t, out, "delete hint", "delete")
 	mustContain(t, out, "clear hint", "clear + exit")
 	mustNotContain(t, out, "hide normal mode round hint", "rounds")
+}
+
+func TestRenderStatusBarFavoritesOnly(t *testing.T) {
+	now := time.Now()
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "", false, false, "to par", true)
+
+	mustContain(t, out, "favorites view label", "favorites")
+	mustContain(t, out, "favorites only hint", "favorites only")
 }
