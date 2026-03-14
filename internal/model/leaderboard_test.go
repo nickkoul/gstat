@@ -35,10 +35,12 @@ func testTournament(names ...string) *espn.Tournament {
 	players := make([]espn.Player, 0, len(names))
 	for i, name := range names {
 		players = append(players, espn.Player{
-			Position:   i + 1,
-			Name:       name,
-			TotalScore: "E",
-			Thru:       "F",
+			ID:              name,
+			CanonicalRank:   i + 1,
+			DisplayPosition: i + 1,
+			Name:            name,
+			TotalScore:      "E",
+			Thru:            "F",
 		})
 	}
 	return &espn.Tournament{Players: players}

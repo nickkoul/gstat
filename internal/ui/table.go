@@ -168,9 +168,9 @@ func formatPosition(p espn.Player) string {
 		return p.Status
 	}
 	if p.Tied {
-		return fmt.Sprintf("T%d", p.Position)
+		return fmt.Sprintf("T%d", p.DisplayPosition)
 	}
-	return fmt.Sprintf("%d", p.Position)
+	return fmt.Sprintf("%d", p.DisplayPosition)
 }
 
 // formatCountry converts country code to display string.

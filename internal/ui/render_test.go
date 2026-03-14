@@ -116,7 +116,8 @@ func TestRenderTableHeaderTwoRounds(t *testing.T) {
 
 func TestRenderPlayerRowLeader(t *testing.T) {
 	player := espn.Player{
-		Position: 1, Name: "Ludvig Åberg", CountryCode: "swe",
+		ID: "4375972", CanonicalRank: 1, DisplayPosition: 1,
+		Name: "Ludvig Åberg", CountryCode: "swe",
 		TotalScore: "-12", Thru: "F",
 		Rounds: makeRounds(69, 63, 0, 0),
 	}
@@ -134,7 +135,8 @@ func TestRenderPlayerRowLeader(t *testing.T) {
 
 func TestRenderPlayerRowTied(t *testing.T) {
 	player := espn.Player{
-		Position: 4, Tied: true, Name: "Corey Conners", CountryCode: "can",
+		ID: "5539", CanonicalRank: 5, DisplayPosition: 4, Tied: true,
+		Name: "Corey Conners", CountryCode: "can",
 		TotalScore: "-8", Thru: "F",
 		Rounds: makeRounds(69, 67, 0, 0),
 	}
@@ -146,7 +148,8 @@ func TestRenderPlayerRowTied(t *testing.T) {
 
 func TestRenderPlayerRowNotTied(t *testing.T) {
 	player := espn.Player{
-		Position: 3, Tied: false, Name: "Someone", CountryCode: "usa",
+		ID: "someone", CanonicalRank: 3, DisplayPosition: 3,
+		Name: "Someone", CountryCode: "usa",
 		TotalScore: "-9", Thru: "F",
 		Rounds: makeRounds(68, 67, 0, 0),
 	}
@@ -160,7 +163,8 @@ func TestRenderPlayerRowNotTied(t *testing.T) {
 
 func TestRenderPlayerRowCUT(t *testing.T) {
 	player := espn.Player{
-		Position: 74, Name: "Adam Schenk", CountryCode: "usa",
+		ID: "5409", CanonicalRank: 74, DisplayPosition: 74,
+		Name: "Adam Schenk", CountryCode: "usa",
 		TotalScore: "+3", Thru: "F", Status: "CUT",
 		Rounds: makeRounds(77, 70, 0, 0),
 	}
@@ -174,7 +178,8 @@ func TestRenderPlayerRowCUT(t *testing.T) {
 
 func TestRenderPlayerRowWD(t *testing.T) {
 	player := espn.Player{
-		Position: 123, Name: "Collin Morikawa", CountryCode: "usa",
+		ID: "10140", CanonicalRank: 123, DisplayPosition: 123,
+		Name: "Collin Morikawa", CountryCode: "usa",
 		TotalScore: "E", Thru: "-", Status: "WD",
 		Rounds: makeRounds(0, 0, 0, 0),
 	}
@@ -187,7 +192,8 @@ func TestRenderPlayerRowWD(t *testing.T) {
 
 func TestRenderPlayerRowEvenPar(t *testing.T) {
 	player := espn.Player{
-		Position: 10, Name: "Even Player", CountryCode: "eng",
+		ID: "even", CanonicalRank: 10, DisplayPosition: 10,
+		Name: "Even Player", CountryCode: "eng",
 		TotalScore: "E", Thru: "F",
 		Rounds: makeRounds(72, 72, 0, 0),
 	}
@@ -199,7 +205,8 @@ func TestRenderPlayerRowEvenPar(t *testing.T) {
 
 func TestRenderPlayerRowOverPar(t *testing.T) {
 	player := espn.Player{
-		Position: 50, Name: "Over Player", CountryCode: "usa",
+		ID: "over", CanonicalRank: 50, DisplayPosition: 50,
+		Name: "Over Player", CountryCode: "usa",
 		TotalScore: "+5", Thru: "F",
 		Rounds: makeRounds(77, 72, 0, 0),
 	}
@@ -211,7 +218,8 @@ func TestRenderPlayerRowOverPar(t *testing.T) {
 
 func TestRenderPlayerRowLongNameTruncation(t *testing.T) {
 	player := espn.Player{
-		Position: 1, Name: "Superlongfirstname Superlonglastname", CountryCode: "usa",
+		ID: "long", CanonicalRank: 1, DisplayPosition: 1,
+		Name: "Superlongfirstname Superlonglastname", CountryCode: "usa",
 		TotalScore: "-5", Thru: "F",
 		Rounds: makeRounds(67, 0, 0, 0),
 	}
@@ -231,7 +239,8 @@ func TestRenderPlayerRowLongNameTruncation(t *testing.T) {
 
 func TestRenderPlayerRowUnplayedRounds(t *testing.T) {
 	player := espn.Player{
-		Position: 1, Name: "Test Player", CountryCode: "usa",
+		ID: "test", CanonicalRank: 1, DisplayPosition: 1,
+		Name: "Test Player", CountryCode: "usa",
 		TotalScore: "-3", Thru: "F",
 		Rounds: makeRounds(69, 0, 0, 0), // only R1 played
 	}
@@ -250,7 +259,8 @@ func TestRenderPlayerRowUnplayedRounds(t *testing.T) {
 
 func TestRenderPlayerRowEmptyCountry(t *testing.T) {
 	player := espn.Player{
-		Position: 1, Name: "No Country", CountryCode: "",
+		ID: "nocountry", CanonicalRank: 1, DisplayPosition: 1,
+		Name: "No Country", CountryCode: "",
 		TotalScore: "-5", Thru: "F",
 		Rounds: makeRounds(67, 0, 0, 0),
 	}
@@ -267,22 +277,26 @@ func TestRenderPlayerRowUnicodeAlignment(t *testing.T) {
 	// Players with multi-byte unicode characters (ø, ä, å, etc.) should
 	// have the same column alignment as players with ASCII-only names.
 	ascii := espn.Player{
-		Position: 1, Name: "Adam Scott", CountryCode: "aus",
+		ID: "adam", CanonicalRank: 1, DisplayPosition: 1,
+		Name: "Adam Scott", CountryCode: "aus",
 		TotalScore: "-5", Thru: "F",
 		Rounds: makeRounds(67, 0, 0, 0),
 	}
 	unicode1 := espn.Player{
-		Position: 2, Name: "Rasmus Højgaard", CountryCode: "den",
+		ID: "rasmus", CanonicalRank: 2, DisplayPosition: 2,
+		Name: "Rasmus Højgaard", CountryCode: "den",
 		TotalScore: "-4", Thru: "F",
 		Rounds: makeRounds(68, 0, 0, 0),
 	}
 	unicode2 := espn.Player{
-		Position: 3, Name: "Sami Välimäki", CountryCode: "fin",
+		ID: "sami", CanonicalRank: 3, DisplayPosition: 3,
+		Name: "Sami Välimäki", CountryCode: "fin",
 		TotalScore: "-3", Thru: "F",
 		Rounds: makeRounds(69, 0, 0, 0),
 	}
 	unicode3 := espn.Player{
-		Position: 4, Name: "Ludvig Åberg", CountryCode: "swe",
+		ID: "ludvig", CanonicalRank: 4, DisplayPosition: 4,
+		Name: "Ludvig Åberg", CountryCode: "swe",
 		TotalScore: "-2", Thru: "F",
 		Rounds: makeRounds(70, 0, 0, 0),
 	}
@@ -403,7 +417,8 @@ func TestRenderStatusBarNarrowWidthKeepsHelpHint(t *testing.T) {
 
 func TestRenderPlayerRowToParMode(t *testing.T) {
 	player := espn.Player{
-		Position: 1, Name: "Mode Player", CountryCode: "usa",
+		ID: "mode", CanonicalRank: 1, DisplayPosition: 1,
+		Name: "Mode Player", CountryCode: "usa",
 		TotalScore: "-5", Thru: "F",
 		Rounds: []espn.RoundScore{
 			{Round: 1, Played: true, Strokes: 67, ToPar: "-5"},

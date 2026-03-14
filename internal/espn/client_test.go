@@ -78,11 +78,12 @@ func TestCalculateTiedPositions(t *testing.T) {
 	tests := []struct {
 		name    string
 		players []Player
-		// Check specific player indices for Tied and Position
+		// Check specific player indices for tie state, canonical rank, and display position.
 		checks []struct {
-			index    int
-			wantTied bool
-			wantPos  int
+			index             int
+			wantTied          bool
+			wantCanonicalRank int
+			wantDisplayPos    int
 		}
 	}{
 		{
@@ -93,117 +94,123 @@ func TestCalculateTiedPositions(t *testing.T) {
 		{
 			name: "solo leader, no ties",
 			players: []Player{
-				{Position: 1, TotalScore: "-12"},
-				{Position: 2, TotalScore: "-10"},
-				{Position: 3, TotalScore: "-9"},
+				{CanonicalRank: 1, DisplayPosition: 1, TotalScore: "-12"},
+				{CanonicalRank: 2, DisplayPosition: 2, TotalScore: "-10"},
+				{CanonicalRank: 3, DisplayPosition: 3, TotalScore: "-9"},
 			},
 			checks: []struct {
-				index    int
-				wantTied bool
-				wantPos  int
+				index             int
+				wantTied          bool
+				wantCanonicalRank int
+				wantDisplayPos    int
 			}{
-				{0, false, 1},
-				{1, false, 2},
-				{2, false, 3},
+				{0, false, 1, 1},
+				{1, false, 2, 2},
+				{2, false, 3, 3},
 			},
 		},
 		{
 			name: "two-way tie",
 			players: []Player{
-				{Position: 1, TotalScore: "-12"},
-				{Position: 2, TotalScore: "-10"},
-				{Position: 3, TotalScore: "-10"},
-				{Position: 4, TotalScore: "-8"},
+				{CanonicalRank: 1, DisplayPosition: 1, TotalScore: "-12"},
+				{CanonicalRank: 2, DisplayPosition: 2, TotalScore: "-10"},
+				{CanonicalRank: 3, DisplayPosition: 3, TotalScore: "-10"},
+				{CanonicalRank: 4, DisplayPosition: 4, TotalScore: "-8"},
 			},
 			checks: []struct {
-				index    int
-				wantTied bool
-				wantPos  int
+				index             int
+				wantTied          bool
+				wantCanonicalRank int
+				wantDisplayPos    int
 			}{
-				{0, false, 1},
-				{1, true, 2},
-				{2, true, 2},
-				{3, false, 4},
+				{0, false, 1, 1},
+				{1, true, 2, 2},
+				{2, true, 3, 2},
+				{3, false, 4, 4},
 			},
 		},
 		{
 			name: "three-way tie",
 			players: []Player{
-				{Position: 1, TotalScore: "-6"},
-				{Position: 2, TotalScore: "-6"},
-				{Position: 3, TotalScore: "-6"},
-				{Position: 4, TotalScore: "-5"},
+				{CanonicalRank: 1, DisplayPosition: 1, TotalScore: "-6"},
+				{CanonicalRank: 2, DisplayPosition: 2, TotalScore: "-6"},
+				{CanonicalRank: 3, DisplayPosition: 3, TotalScore: "-6"},
+				{CanonicalRank: 4, DisplayPosition: 4, TotalScore: "-5"},
 			},
 			checks: []struct {
-				index    int
-				wantTied bool
-				wantPos  int
+				index             int
+				wantTied          bool
+				wantCanonicalRank int
+				wantDisplayPos    int
 			}{
-				{0, true, 1},
-				{1, true, 1},
-				{2, true, 1},
-				{3, false, 4},
+				{0, true, 1, 1},
+				{1, true, 2, 1},
+				{2, true, 3, 1},
+				{3, false, 4, 4},
 			},
 		},
 		{
 			name: "all players tied",
 			players: []Player{
-				{Position: 1, TotalScore: "E"},
-				{Position: 2, TotalScore: "E"},
-				{Position: 3, TotalScore: "E"},
+				{CanonicalRank: 1, DisplayPosition: 1, TotalScore: "E"},
+				{CanonicalRank: 2, DisplayPosition: 2, TotalScore: "E"},
+				{CanonicalRank: 3, DisplayPosition: 3, TotalScore: "E"},
 			},
 			checks: []struct {
-				index    int
-				wantTied bool
-				wantPos  int
+				index             int
+				wantTied          bool
+				wantCanonicalRank int
+				wantDisplayPos    int
 			}{
-				{0, true, 1},
-				{1, true, 1},
-				{2, true, 1},
+				{0, true, 1, 1},
+				{1, true, 2, 1},
+				{2, true, 3, 1},
 			},
 		},
 		{
 			name: "CUT/WD players excluded from tie groups",
 			players: []Player{
-				{Position: 1, TotalScore: "-5"},
-				{Position: 2, TotalScore: "-5"},
-				{Position: 3, TotalScore: "+3", Status: "CUT"},
-				{Position: 4, TotalScore: "+3", Status: "CUT"},
+				{CanonicalRank: 1, DisplayPosition: 1, TotalScore: "-5"},
+				{CanonicalRank: 2, DisplayPosition: 2, TotalScore: "-5"},
+				{CanonicalRank: 3, DisplayPosition: 3, TotalScore: "+3", Status: "CUT"},
+				{CanonicalRank: 4, DisplayPosition: 4, TotalScore: "+3", Status: "CUT"},
 			},
 			checks: []struct {
-				index    int
-				wantTied bool
-				wantPos  int
+				index             int
+				wantTied          bool
+				wantCanonicalRank int
+				wantDisplayPos    int
 			}{
-				{0, true, 1},
-				{1, true, 1},
-				{2, false, 3}, // CUT players not marked tied
-				{3, false, 4},
+				{0, true, 1, 1},
+				{1, true, 2, 1},
+				{2, false, 3, 3}, // CUT players not marked tied
+				{3, false, 4, 4},
 			},
 		},
 		{
 			name: "multiple tie groups",
 			players: []Player{
-				{Position: 1, TotalScore: "-12"},
-				{Position: 2, TotalScore: "-10"},
-				{Position: 3, TotalScore: "-10"},
-				{Position: 4, TotalScore: "-8"},
-				{Position: 5, TotalScore: "-8"},
-				{Position: 6, TotalScore: "-8"},
-				{Position: 7, TotalScore: "-7"},
+				{CanonicalRank: 1, DisplayPosition: 1, TotalScore: "-12"},
+				{CanonicalRank: 2, DisplayPosition: 2, TotalScore: "-10"},
+				{CanonicalRank: 3, DisplayPosition: 3, TotalScore: "-10"},
+				{CanonicalRank: 4, DisplayPosition: 4, TotalScore: "-8"},
+				{CanonicalRank: 5, DisplayPosition: 5, TotalScore: "-8"},
+				{CanonicalRank: 6, DisplayPosition: 6, TotalScore: "-8"},
+				{CanonicalRank: 7, DisplayPosition: 7, TotalScore: "-7"},
 			},
 			checks: []struct {
-				index    int
-				wantTied bool
-				wantPos  int
+				index             int
+				wantTied          bool
+				wantCanonicalRank int
+				wantDisplayPos    int
 			}{
-				{0, false, 1},
-				{1, true, 2},
-				{2, true, 2},
-				{3, true, 4},
-				{4, true, 4},
-				{5, true, 4},
-				{6, false, 7},
+				{0, false, 1, 1},
+				{1, true, 2, 2},
+				{2, true, 3, 2},
+				{3, true, 4, 4},
+				{4, true, 5, 4},
+				{5, true, 6, 4},
+				{6, false, 7, 7},
 			},
 		},
 	}
@@ -216,8 +223,11 @@ func TestCalculateTiedPositions(t *testing.T) {
 				if p.Tied != c.wantTied {
 					t.Errorf("player[%d] Tied = %v, want %v", c.index, p.Tied, c.wantTied)
 				}
-				if p.Position != c.wantPos {
-					t.Errorf("player[%d] Position = %d, want %d", c.index, p.Position, c.wantPos)
+				if p.CanonicalRank != c.wantCanonicalRank {
+					t.Errorf("player[%d] CanonicalRank = %d, want %d", c.index, p.CanonicalRank, c.wantCanonicalRank)
+				}
+				if p.DisplayPosition != c.wantDisplayPos {
+					t.Errorf("player[%d] DisplayPosition = %d, want %d", c.index, p.DisplayPosition, c.wantDisplayPos)
 				}
 			}
 		})
@@ -382,15 +392,18 @@ func TestParsePlayer(t *testing.T) {
 		comp       Competitor
 		round      int
 		cutApplied bool
+		wantID     string
 		wantName   string
 		wantScore  string
 		wantStatus string
 		wantThru   string
 		wantR1     bool // whether R1 is marked as played
+		wantRank   int
 	}{
 		{
 			name: "normal player",
 			comp: Competitor{
+				ID:    "4375972",
 				Order: 1,
 				Score: "-12",
 				Athlete: Athlete{
@@ -406,15 +419,18 @@ func TestParsePlayer(t *testing.T) {
 			},
 			round:      2,
 			cutApplied: true,
+			wantID:     "4375972",
 			wantName:   "Ludvig Åberg",
 			wantScore:  "-12",
 			wantStatus: "",
 			wantThru:   "F",
 			wantR1:     true,
+			wantRank:   1,
 		},
 		{
 			name: "WD player - value is holes played",
 			comp: Competitor{
+				ID:    "10140",
 				Order: 123,
 				Score: "E",
 				Athlete: Athlete{
@@ -422,21 +438,24 @@ func TestParsePlayer(t *testing.T) {
 					ShortName:   "C. Morikawa",
 				},
 				LineScores: []RoundData{
-					{Period: 1, Value: 4, DisplayValue: "E"},      // 4 holes played
-					{Period: 2, Value: 0, DisplayValue: "-"},       // didn't play R2
+					{Period: 1, Value: 4, DisplayValue: "E"}, // 4 holes played
+					{Period: 2, Value: 0, DisplayValue: "-"}, // didn't play R2
 				},
 			},
 			round:      2,
 			cutApplied: true,
+			wantID:     "10140",
 			wantName:   "Collin Morikawa",
 			wantScore:  "E",
 			wantStatus: "WD",
 			wantThru:   "-",
 			wantR1:     false, // WD player with value < 30, should not be marked played
+			wantRank:   123,
 		},
 		{
 			name: "CUT player - no R3 entry",
 			comp: Competitor{
+				ID:    "5409",
 				Order: 74,
 				Score: "+3",
 				Athlete: Athlete{
@@ -451,15 +470,18 @@ func TestParsePlayer(t *testing.T) {
 			},
 			round:      2,
 			cutApplied: true,
+			wantID:     "5409",
 			wantName:   "Adam Schenk",
 			wantScore:  "+3",
 			wantStatus: "CUT",
 			wantThru:   "F",
 			wantR1:     true,
+			wantRank:   74,
 		},
 		{
 			name: "player with no flag",
 			comp: Competitor{
+				ID:    "12345",
 				Order: 5,
 				Score: "-5",
 				Athlete: Athlete{
@@ -472,15 +494,18 @@ func TestParsePlayer(t *testing.T) {
 			},
 			round:      1,
 			cutApplied: false,
+			wantID:     "12345",
 			wantName:   "John Doe",
 			wantScore:  "-5",
 			wantStatus: "",
 			wantThru:   "F",
 			wantR1:     true,
+			wantRank:   5,
 		},
 		{
 			name: "cut not yet applied - player without R3 is not marked CUT",
 			comp: Competitor{
+				ID:    "67890",
 				Order: 74,
 				Score: "+3",
 				Athlete: Athlete{
@@ -494,19 +519,53 @@ func TestParsePlayer(t *testing.T) {
 			},
 			round:      2,
 			cutApplied: false, // cut not yet applied
+			wantID:     "67890",
 			wantName:   "Someone",
 			wantScore:  "+3",
 			wantStatus: "", // not CUT because cut hasn't been applied
 			wantThru:   "F",
 			wantR1:     true,
+			wantRank:   74,
+		},
+		{
+			name: "prefers nested athlete ID when present",
+			comp: Competitor{
+				ID:    "competitor-id",
+				Order: 9,
+				Score: "-1",
+				Athlete: Athlete{
+					ID:          "athlete-id",
+					DisplayName: "Nested ID",
+					ShortName:   "N. ID",
+				},
+				LineScores: []RoundData{{Period: 1, Value: 71, DisplayValue: "-1"}},
+			},
+			round:      1,
+			cutApplied: false,
+			wantID:     "athlete-id",
+			wantName:   "Nested ID",
+			wantScore:  "-1",
+			wantStatus: "",
+			wantThru:   "F",
+			wantR1:     true,
+			wantRank:   9,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := parsePlayer(tt.comp, tt.round, tt.cutApplied)
+			if got.ID != tt.wantID {
+				t.Errorf("ID = %q, want %q", got.ID, tt.wantID)
+			}
 			if got.Name != tt.wantName {
 				t.Errorf("Name = %q, want %q", got.Name, tt.wantName)
+			}
+			if got.CanonicalRank != tt.wantRank {
+				t.Errorf("CanonicalRank = %d, want %d", got.CanonicalRank, tt.wantRank)
+			}
+			if got.DisplayPosition != tt.wantRank {
+				t.Errorf("DisplayPosition = %d, want %d", got.DisplayPosition, tt.wantRank)
 			}
 			if got.TotalScore != tt.wantScore {
 				t.Errorf("TotalScore = %q, want %q", got.TotalScore, tt.wantScore)
@@ -575,8 +634,14 @@ func TestParseTournamentFixture(t *testing.T) {
 	if leader.TotalScore != "-12" {
 		t.Errorf("Leader score = %q, want %q", leader.TotalScore, "-12")
 	}
-	if leader.Position != 1 {
-		t.Errorf("Leader position = %d, want 1", leader.Position)
+	if leader.ID != "4375972" {
+		t.Errorf("Leader ID = %q, want %q", leader.ID, "4375972")
+	}
+	if leader.CanonicalRank != 1 {
+		t.Errorf("Leader canonical rank = %d, want 1", leader.CanonicalRank)
+	}
+	if leader.DisplayPosition != 1 {
+		t.Errorf("Leader display position = %d, want 1", leader.DisplayPosition)
 	}
 	if leader.Tied {
 		t.Error("Leader should not be tied (solo first)")
@@ -614,11 +679,15 @@ func TestParseTournamentFixture(t *testing.T) {
 			t.Errorf("player %q at -8 should be marked as tied", p.Name)
 		}
 	}
-	// All tied players should share the same position
-	firstPos := tiedAtMinus8[0].Position
+	// All tied players should share the same display position while keeping canonical rank intact.
+	firstPos := tiedAtMinus8[0].DisplayPosition
+	firstRank := tiedAtMinus8[0].CanonicalRank
 	for _, p := range tiedAtMinus8[1:] {
-		if p.Position != firstPos {
-			t.Errorf("tied player %q has position %d, want %d (same as first)", p.Name, p.Position, firstPos)
+		if p.DisplayPosition != firstPos {
+			t.Errorf("tied player %q has display position %d, want %d (same as first)", p.Name, p.DisplayPosition, firstPos)
+		}
+		if p.CanonicalRank <= firstRank {
+			t.Errorf("tied player %q canonical rank = %d, want greater than %d", p.Name, p.CanonicalRank, firstRank)
 		}
 	}
 

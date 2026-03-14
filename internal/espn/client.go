@@ -124,7 +124,7 @@ func parseTournament(sb ScoreboardResponse) (*Tournament, error) {
 		t.Players = append(t.Players, player)
 	}
 
-	// Calculate tied positions
+	// Calculate tied display positions while preserving canonical ranks.
 	calculateTiedPositions(t.Players)
 
 	return t, nil
@@ -132,11 +132,18 @@ func parseTournament(sb ScoreboardResponse) (*Tournament, error) {
 
 // parsePlayer converts a raw Competitor into a simplified Player.
 func parsePlayer(c Competitor, currentRound int, cutApplied bool) Player {
+	playerID := c.Athlete.ID
+	if playerID == "" {
+		playerID = c.ID
+	}
+
 	p := Player{
-		Position:   c.Order,
-		Name:       c.Athlete.DisplayName,
-		ShortName:  c.Athlete.ShortName,
-		TotalScore: c.Score,
+		ID:              playerID,
+		CanonicalRank:   c.Order,
+		DisplayPosition: c.Order,
+		Name:            c.Athlete.DisplayName,
+		ShortName:       c.Athlete.ShortName,
+		TotalScore:      c.Score,
 	}
 
 	if c.Athlete.Flag != nil {
@@ -193,12 +200,19 @@ func parsePlayer(c Competitor, currentRound int, cutApplied bool) Player {
 	return p
 }
 
-// calculateTiedPositions assigns the Tied flag based on score groupings.
-// ESPN's order field gives a unique rank (1,2,3,...) but doesn't indicate ties.
-// We detect ties by grouping players with the same score.
+// calculateTiedPositions assigns tied display positions based on score groupings.
+// ESPN's order field gives a unique canonical rank (1,2,3,...) but doesn't indicate ties.
+// We detect ties by grouping players with the same score while keeping canonical ranks intact.
 func calculateTiedPositions(players []Player) {
 	if len(players) == 0 {
 		return
+	}
+
+	for i := range players {
+		players[i].Tied = false
+		if players[i].DisplayPosition == 0 {
+			players[i].DisplayPosition = players[i].CanonicalRank
+		}
 	}
 
 	// Group by score (only for active players, not CUT/WD)
@@ -225,7 +239,7 @@ func calculateTiedPositions(players []Player) {
 		if g.count > 1 {
 			for i := g.start; i < g.start+g.count; i++ {
 				players[i].Tied = true
-				players[i].Position = players[g.start].Position // all share the first position
+				players[i].DisplayPosition = players[g.start].CanonicalRank
 			}
 		}
 	}

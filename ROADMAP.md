@@ -183,24 +183,31 @@ Completion notes:
 - Behavior: when expanded hints are hidden, the status bar now keeps `? show hints` visible and reserves enough space for the full status line on shorter terminals
 - Follow-up: Feature 4 still starts the stable-ID plumbing needed for favorites and movement tracking
 
-### Feature 4 - Stable player identity + canonical/display rank plumbing
+### Feature 4 - Stable player identity + canonical/display rank plumbing [COMPLETE]
 
-- Status: planned
+- Status: complete (Mar 14, 2026)
 - Goal: introduce stable player identity and preserve separate canonical rank vs tied display rank
 - Dependencies: required before Features 5-8
 
 Checklist:
 
-- [ ] Carry ESPN athlete ID into the simplified `espn.Player` model
-- [ ] Preserve canonical/raw leaderboard order separately from tied display position
-- [ ] Keep tie rendering behavior unchanged in the UI
-- [ ] Add tests for ID parsing and tie/rank behavior
+- [x] Carry ESPN athlete ID into the simplified `espn.Player` model
+- [x] Preserve canonical/raw leaderboard order separately from tied display position
+- [x] Keep tie rendering behavior unchanged in the UI
+- [x] Add tests for ID parsing and tie/rank behavior
 
 Acceptance criteria:
 
 - Existing leaderboard output remains visually the same
 - Player identity is stable across refreshes
 - Tie rendering still shows `Tn` correctly
+
+Completion notes:
+
+- Files touched: `internal/espn/types.go`, `internal/espn/client.go`, `internal/espn/client_test.go`, `internal/ui/table.go`, `internal/ui/render_test.go`, `internal/model/leaderboard_test.go`
+- Tests run: `go test ./internal/espn`, `go test ./internal/ui`, `go test ./internal/model`, `go test ./...`
+- Behavior: players now carry a stable ESPN athlete ID plus separate `CanonicalRank` and `DisplayPosition` fields, so tie rendering stays the same while canonical order remains available for future features
+- Follow-up: Features 5-8 can now key persistent/comparison state off stable player IDs and canonical rank without depending on visible row order
 
 ### Feature 5 - Favorite/pin players
 

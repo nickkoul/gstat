@@ -123,10 +123,10 @@ type Flag struct {
 
 // RoundData holds per-round scoring data.
 type RoundData struct {
-	Value        float64         `json:"value"`
-	DisplayValue string          `json:"displayValue"`
-	Period       int             `json:"period"`
-	LineScores   []HoleData      `json:"linescores,omitempty"`
+	Value        float64          `json:"value"`
+	DisplayValue string           `json:"displayValue"`
+	Period       int              `json:"period"`
+	LineScores   []HoleData       `json:"linescores,omitempty"`
 	Statistics   *RoundStatistics `json:"statistics,omitempty"`
 }
 
@@ -169,16 +169,18 @@ type Tournament struct {
 
 // Player is a simplified view of a competitor for display purposes.
 type Player struct {
-	Position    int
-	Tied        bool   // true if tied with another player at this position
-	Name        string
-	ShortName   string
-	Country     string
-	CountryCode string
-	TotalScore  string // e.g. "-12", "+3", "E"
-	Rounds      []RoundScore
-	Thru        string // e.g. "F", "12", "-"
-	Status      string // "", "CUT", "WD", "MDF", "DQ"
+	ID              string
+	CanonicalRank   int
+	DisplayPosition int
+	Tied            bool // true if tied with another player at this display position
+	Name            string
+	ShortName       string
+	Country         string
+	CountryCode     string
+	TotalScore      string // e.g. "-12", "+3", "E"
+	Rounds          []RoundScore
+	Thru            string // e.g. "F", "12", "-"
+	Status          string // "", "CUT", "WD", "MDF", "DQ"
 }
 
 // RoundScore is a simplified per-round score.
