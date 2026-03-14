@@ -22,6 +22,8 @@ type roundScoreDisplayMode string
 
 type playerChange string
 
+type playerUpdate uint8
+
 const (
 	roundScoreDisplayStrokes roundScoreDisplayMode = "strokes"
 	roundScoreDisplayToPar   roundScoreDisplayMode = "to par"
@@ -29,6 +31,20 @@ const (
 	playerChangeNone playerChange = ""
 	playerChangeEven playerChange = "E"
 )
+
+const (
+	playerUpdateNone  playerUpdate = 0
+	playerUpdateScore playerUpdate = 1 << iota
+	playerUpdateStanding
+)
+
+type playerSnapshot struct {
+	ID              string
+	CanonicalRank   int
+	DisplayPosition int
+	TotalScore      string
+	Status          string
+}
 
 // Model is the main Bubble Tea model for the leaderboard view.
 type Model struct {
@@ -40,6 +56,8 @@ type Model struct {
 	lastError      string
 	favoritesErr   string
 	changes        map[string]playerChange
+	updates        map[string]playerUpdate
+	snapshot       map[string]playerSnapshot
 
 	// UI state
 	width         int
@@ -100,6 +118,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case DataFetchedMsg:
 		m.changes = computeRoundChanges(msg.Tournament)
+		m.updates = computeRefreshUpdates(m.snapshot, msg.Tournament)
+		m.snapshot = buildPlayerSnapshot(msg.Tournament)
 		m.tournament = msg.Tournament
 		m.lastUpdate = msg.FetchedAt
 		m.lastError = ""
@@ -268,6 +288,8 @@ func (m Model) renderLeaderboard() string {
 			cutLine,
 			m.roundMode == roundScoreDisplayToPar,
 			string(m.changeFor(p.ID)),
+			m.scoreUpdated(p.ID),
+			m.standingUpdated(p.ID),
 			p.ID == m.selectedID,
 			m.isFavorite(p.ID),
 		)
@@ -457,6 +479,21 @@ func (m Model) changeFor(playerID string) playerChange {
 	return m.changes[playerID]
 }
 
+func (m Model) updateFor(playerID string) playerUpdate {
+	if len(m.updates) == 0 {
+		return playerUpdateNone
+	}
+	return m.updates[playerID]
+}
+
+func (m Model) scoreUpdated(playerID string) bool {
+	return m.updateFor(playerID)&playerUpdateScore != 0
+}
+
+func (m Model) standingUpdated(playerID string) bool {
+	return m.updateFor(playerID)&playerUpdateStanding != 0
+}
+
 func filterPlayers(players []espn.Player, query string) []espn.Player {
 	query = strings.TrimSpace(strings.ToLower(query))
 	if query == "" {
@@ -533,6 +570,64 @@ func computeRoundChanges(tournament *espn.Tournament) map[string]playerChange {
 	}
 
 	return changes
+}
+
+func buildPlayerSnapshot(tournament *espn.Tournament) map[string]playerSnapshot {
+	if tournament == nil || len(tournament.Players) == 0 {
+		return nil
+	}
+
+	snapshot := make(map[string]playerSnapshot, len(tournament.Players))
+	for _, p := range tournament.Players {
+		if p.ID == "" {
+			continue
+		}
+		snapshot[p.ID] = playerSnapshot{
+			ID:              p.ID,
+			CanonicalRank:   p.CanonicalRank,
+			DisplayPosition: p.DisplayPosition,
+			TotalScore:      p.TotalScore,
+			Status:          p.Status,
+		}
+	}
+
+	if len(snapshot) == 0 {
+		return nil
+	}
+
+	return snapshot
+}
+
+func computeRefreshUpdates(previous map[string]playerSnapshot, tournament *espn.Tournament) map[string]playerUpdate {
+	if len(previous) == 0 || tournament == nil || len(tournament.Players) == 0 {
+		return nil
+	}
+
+	updates := make(map[string]playerUpdate)
+	for _, p := range tournament.Players {
+		prev, ok := previous[p.ID]
+		if !ok {
+			continue
+		}
+
+		var update playerUpdate
+		if prev.TotalScore != p.TotalScore {
+			update |= playerUpdateScore
+		}
+		if prev.CanonicalRank != p.CanonicalRank || prev.DisplayPosition != p.DisplayPosition || prev.Status != p.Status {
+			update |= playerUpdateStanding
+		}
+
+		if update != playerUpdateNone {
+			updates[p.ID] = update
+		}
+	}
+
+	if len(updates) == 0 {
+		return nil
+	}
+
+	return updates
 }
 
 type roundStanding struct {

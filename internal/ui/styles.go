@@ -53,6 +53,9 @@ type Styles struct {
 	ChangeUp       lipgloss.Style
 	ChangeDown     lipgloss.Style
 	ChangeNeutral  lipgloss.Style
+	UpdateScore    lipgloss.Style
+	UpdateStanding lipgloss.Style
+	UpdateBoth     lipgloss.Style
 	PlayerName     lipgloss.Style
 	FavoritePlayer lipgloss.Style
 	Country        lipgloss.Style
@@ -140,6 +143,18 @@ func DefaultStyles() Styles {
 
 		ChangeNeutral: lipgloss.NewStyle().
 			Foreground(colorDimGray),
+
+		UpdateScore: lipgloss.NewStyle().
+			Foreground(colorCyan).
+			Bold(true),
+
+		UpdateStanding: lipgloss.NewStyle().
+			Foreground(colorBlue).
+			Bold(true),
+
+		UpdateBoth: lipgloss.NewStyle().
+			Foreground(colorYellow).
+			Bold(true),
 
 		PlayerName: lipgloss.NewStyle().
 			Foreground(colorWhite),

@@ -259,6 +259,75 @@ func TestDataFetchedChangeUsesRoundStandingNotVisibleFilters(t *testing.T) {
 	}
 }
 
+func TestDataFetchedDoesNotMarkRefreshUpdatesOnFirstLoad(t *testing.T) {
+	m := New()
+
+	updated, _ := m.Update(DataFetchedMsg{
+		Tournament: &espn.Tournament{Players: []espn.Player{
+			{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-5", Thru: "12"},
+		}},
+		FetchedAt: time.Now(),
+	})
+	next := updated.(Model)
+
+	if got := next.updateFor("scottie"); got != playerUpdateNone {
+		t.Fatalf("update = %v, want none on first load", got)
+	}
+}
+
+func TestDataFetchedMarksRefreshScoreAndStandingUpdatesSeparately(t *testing.T) {
+	m := New()
+	first := &espn.Tournament{Players: []espn.Player{
+		{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-5", Thru: "12"},
+		{ID: "rory", CanonicalRank: 2, DisplayPosition: 2, Name: "Rory McIlroy", TotalScore: "-4", Thru: "11"},
+		{ID: "xander", CanonicalRank: 3, DisplayPosition: 3, Name: "Xander Schauffele", TotalScore: "-3", Thru: "10"},
+	}}
+	second := &espn.Tournament{Players: []espn.Player{
+		{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-6", Thru: "13"},
+		{ID: "rory", CanonicalRank: 3, DisplayPosition: 3, Name: "Rory McIlroy", TotalScore: "-5", Thru: "12"},
+		{ID: "xander", CanonicalRank: 2, DisplayPosition: 2, Name: "Xander Schauffele", TotalScore: "-3", Thru: "10"},
+	}}
+
+	updated, _ := m.Update(DataFetchedMsg{Tournament: first, FetchedAt: time.Now()})
+	m = updated.(Model)
+	updated, _ = m.Update(DataFetchedMsg{Tournament: second, FetchedAt: time.Now()})
+	next := updated.(Model)
+
+	if !next.scoreUpdated("scottie") || next.standingUpdated("scottie") {
+		t.Fatalf("scottie update = %v, want score only", next.updateFor("scottie"))
+	}
+	if !next.scoreUpdated("rory") || !next.standingUpdated("rory") {
+		t.Fatalf("rory update = %v, want score and standing", next.updateFor("rory"))
+	}
+	if next.scoreUpdated("xander") || !next.standingUpdated("xander") {
+		t.Fatalf("xander update = %v, want standing only", next.updateFor("xander"))
+	}
+}
+
+func TestDataFetchedClearsRefreshUpdatesWhenRowsStopChanging(t *testing.T) {
+	m := New()
+	tournament := &espn.Tournament{Players: []espn.Player{
+		{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-5", Thru: "12"},
+	}}
+	changed := &espn.Tournament{Players: []espn.Player{
+		{ID: "scottie", CanonicalRank: 1, DisplayPosition: 1, Name: "Scottie Scheffler", TotalScore: "-6", Thru: "13"},
+	}}
+
+	updated, _ := m.Update(DataFetchedMsg{Tournament: tournament, FetchedAt: time.Now()})
+	m = updated.(Model)
+	updated, _ = m.Update(DataFetchedMsg{Tournament: changed, FetchedAt: time.Now()})
+	m = updated.(Model)
+	if !m.scoreUpdated("scottie") {
+		t.Fatal("expected score update after changed refresh")
+	}
+
+	updated, _ = m.Update(DataFetchedMsg{Tournament: changed, FetchedAt: time.Now()})
+	next := updated.(Model)
+	if got := next.updateFor("scottie"); got != playerUpdateNone {
+		t.Fatalf("update = %v, want cleared after unchanged refresh", got)
+	}
+}
+
 func TestDataFetchedSelectsFirstVisiblePlayer(t *testing.T) {
 	m := New()
 	m.height = 20

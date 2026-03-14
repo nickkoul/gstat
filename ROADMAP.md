@@ -302,24 +302,32 @@ Completion notes:
 
 ### Feature 8 - Visual indication for player score/standing updates
 
-- Status: planned
+- Status: complete (Mar 14, 2026)
 - Goal: make player changes easy to notice when score or standing changes on refresh
 - Dependencies: reuse Feature 7 snapshot plumbing
 
 Checklist:
 
-- [ ] Reuse previous-refresh snapshot data
-- [ ] Detect score changes and standing changes separately
-- [ ] Add transient row-level change metadata
-- [ ] Add subtle highlight or marker that coexists with favorite and movement styling
-- [ ] Decide and implement decay/reset behavior for the indicator
-- [ ] Add tests for changed vs unchanged rows
+- [x] Reuse previous-refresh snapshot data
+- [x] Detect score changes and standing changes separately
+- [x] Add transient row-level change metadata
+- [x] Add subtle highlight or marker that coexists with favorite and movement styling
+- [x] Decide and implement decay/reset behavior for the indicator
+- [x] Add tests for changed vs unchanged rows
 
 Acceptance criteria:
 
 - Updated players are visually noticeable
 - The table remains readable when many players change
 - Indicators clear/reset predictably
+
+Completion notes:
+
+- Files touched: `internal/model/leaderboard.go`, `internal/model/leaderboard_test.go`, `internal/ui/table.go`, `internal/ui/styles.go`, `internal/ui/render_test.go`, `README.md`, `ROADMAP.md`
+- Tests run: `go test ./internal/model ./internal/ui`, `go test ./...`
+- Behavior: each successful refresh now compares the current field against a stable per-player snapshot from the prior fetch and marks rows with `!` for score changes, `^` for standing/status changes, or `+` when both changed
+- Decay: markers are transient and clear automatically on the next successful refresh where that row no longer changes
+- Follow-up: v0.2.0 execution plan is now complete, so the next implementation target should come from the v0.3.0 backlog
 
 ### Session Resume Rules
 

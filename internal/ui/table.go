@@ -10,7 +10,7 @@ import (
 
 // Column widths
 const (
-	colMarker = 2
+	colMarker = 3
 	colPos    = 5
 	colChange = 4
 	colName   = 24
@@ -61,10 +61,10 @@ func RenderTableHeader(width int, totalRounds int) string {
 }
 
 // RenderPlayerRow renders a single player row in the leaderboard.
-func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLine int, showRoundScoresToPar bool, movement string, selected bool, favorite bool) string {
+func RenderPlayerRow(p espn.Player, index int, width int, totalRounds int, cutLine int, showRoundScoresToPar bool, movement string, scoreUpdated bool, standingUpdated bool, selected bool, favorite bool) string {
 	s := DefaultStyles()
 
-	marker := s.Marker.Render(padRight(formatMarker(selected, favorite), colMarker))
+	marker := renderMarker(selected, favorite, scoreUpdated, standingUpdated, s)
 
 	// Position display with tie indicator
 	posStr := formatPosition(p)
@@ -206,17 +206,39 @@ func formatPosition(p espn.Player) string {
 	return fmt.Sprintf("%d", p.DisplayPosition)
 }
 
-func formatMarker(selected bool, favorite bool) string {
-	switch {
-	case selected && favorite:
-		return ">*"
-	case selected:
-		return ">"
-	case favorite:
-		return "*"
-	default:
-		return ""
+func formatMarker(selected bool, favorite bool, scoreUpdated bool, standingUpdated bool) string {
+	marker := ""
+	if selected {
+		marker += ">"
 	}
+	if favorite {
+		marker += "*"
+	}
+
+	switch {
+	case scoreUpdated && standingUpdated:
+		marker += "+"
+	case standingUpdated:
+		marker += "^"
+	case scoreUpdated:
+		marker += "!"
+	}
+
+	return marker
+}
+
+func renderMarker(selected bool, favorite bool, scoreUpdated bool, standingUpdated bool, s Styles) string {
+	marker := formatMarker(selected, favorite, scoreUpdated, standingUpdated)
+	styled := s.Marker
+	switch {
+	case scoreUpdated && standingUpdated:
+		styled = s.UpdateBoth
+	case standingUpdated:
+		styled = s.UpdateStanding
+	case scoreUpdated:
+		styled = s.UpdateScore
+	}
+	return styled.Render(padRight(marker, colMarker))
 }
 
 // formatCountry converts country code to display string.
