@@ -22,11 +22,30 @@ Live golf tournament leaderboard in your terminal.
 
 ## Install
 
+### Go install
+
 ```bash
 go install github.com/nickkoul/gstat@latest
 ```
 
-Or build from source:
+### Download a release binary
+
+Download the archive for your platform from the GitHub Releases page, then extract and run `gstat`.
+
+- macOS Apple Silicon: `gstat_<version>_darwin_arm64.tar.gz`
+- macOS Intel: `gstat_<version>_darwin_x86_64.tar.gz`
+- Linux arm64: `gstat_<version>_linux_arm64.tar.gz`
+- Linux x86_64: `gstat_<version>_linux_x86_64.tar.gz`
+- Windows x86_64: `gstat_<version>_windows_x86_64.zip`
+
+On macOS, unsigned binaries may be quarantined on first download. If Gatekeeper blocks launch, clear the quarantine attribute and run again:
+
+```bash
+xattr -d com.apple.quarantine ./gstat
+./gstat
+```
+
+### Build from source
 
 ```bash
 git clone https://github.com/nickkoul/gstat.git

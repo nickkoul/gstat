@@ -360,7 +360,7 @@ Completion notes:
 - [ ] Configure Homebrew formula generation in GoReleaser config
 - [ ] Tag and publish first release
 - [ ] Verify install methods: `brew install nickkoul/tap/gstat`, direct download, `go install`
-- [ ] Document install methods in README
+- [x] Document install methods in README
 
 Progress notes:
 
