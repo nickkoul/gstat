@@ -574,6 +574,21 @@ func TestRenderPlayerDetail(t *testing.T) {
 	mustContain(t, out, "round running total", "|   -2|    E|")
 }
 
+func TestRenderPlayerDetailShowsDashForUnplayedRunningHoles(t *testing.T) {
+	player := espn.Player{
+		ID: "detail", Name: "Detail Player", TotalScore: "-1", Thru: "1",
+		Rounds: []espn.RoundScore{{
+			Round: 1, Played: true,
+			Holes: []espn.HoleScore{{
+				Number: 1, Par: 4, Strokes: 3, ScoreType: "birdie", Played: true,
+			}},
+		}},
+	}
+
+	out := stripANSI(ui.RenderPlayerDetail(player, 140, 1))
+	mustContain(t, out, "running row uses dash for future holes", "|RUN |   -1|  -  |")
+}
+
 func TestRenderPlayerDetailWithoutHoleData(t *testing.T) {
 	player := espn.Player{
 		ID: "detail", Name: "Detail Player", TotalScore: "E", Thru: "-",

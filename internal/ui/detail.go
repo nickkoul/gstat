@@ -225,6 +225,13 @@ func renderScoreCell(col detailColumn, holes map[int]espn.HoleScore, s Styles) s
 }
 
 func renderRunningToParCell(col detailColumn, holes map[int]espn.HoleScore, s Styles) string {
+	if !col.summary {
+		hole, ok := singleHole(col, holes)
+		if !ok || !hole.Played {
+			return s.DetailMuted.Render(padCenter("-", detailCellWidth))
+		}
+	}
+
 	if value, ok := runningRelativeValue(col, holes); ok {
 		return renderRelativeScore(formatRelativeValue(value), detailCellWidth, s)
 	}
