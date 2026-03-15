@@ -257,6 +257,8 @@ git push origin v0.1.1
 
 The workflow checks out the full git history, uses the Go version from `go.mod`, and runs `goreleaser release --clean` with the repository's built-in `GITHUB_TOKEN`.
 
+To publish the Homebrew formula into `nickkoul/homebrew-tap`, add a repository secret named `HOMEBREW_TAP_GITHUB_TOKEN` with contents-write access to that tap repository. The default GitHub Actions `GITHUB_TOKEN` can create the release in `nickkoul/gstat`, but it cannot push formula updates into a different repository.
+
 Use the manual local workflow above only when you intentionally want to publish from your machine instead of CI.
 
 ## Adding a New Feature
