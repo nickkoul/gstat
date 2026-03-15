@@ -11,7 +11,7 @@ type statusSegment struct {
 }
 
 // RenderStatusBar renders the bottom status bar with last update time and keybinds.
-func RenderStatusBar(lastUpdate time.Time, nextRefresh time.Duration, width int, errMsg string, filterQuery string, searchMode bool, showHelp bool, roundMode string, favoritesOnly bool) string {
+func RenderStatusBar(lastUpdate time.Time, nextRefresh time.Duration, width int, errMsg string, filterQuery string, searchMode bool, showHelp bool, roundMode string, favoritesOnly bool, showDetail bool) string {
 	s := DefaultStyles()
 
 	var leftSegments []statusSegment
@@ -64,7 +64,7 @@ func RenderStatusBar(lastUpdate time.Time, nextRefresh time.Duration, width int,
 		helpLabel = "hide hints"
 	}
 
-	rightCandidates := buildRightCandidates(s, searchMode, helpLabel)
+	rightCandidates := buildRightCandidates(s, searchMode, helpLabel, showDetail)
 	fullLeftWidth := totalStatusWidth(leftSegments)
 	right := rightCandidates[len(rightCandidates)-1]
 	for _, candidate := range rightCandidates {
@@ -121,7 +121,7 @@ func totalStatusWidth(segments []statusSegment) int {
 	return width
 }
 
-func buildRightCandidates(s Styles, searchMode bool, helpLabel string) []statusSegment {
+func buildRightCandidates(s Styles, searchMode bool, helpLabel string, showDetail bool) []statusSegment {
 	if searchMode {
 		return []statusSegment{
 			newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s ",
@@ -149,10 +149,41 @@ func buildRightCandidates(s Styles, searchMode bool, helpLabel string) []statusS
 		}
 	}
 
+	if showDetail {
+		return []statusSegment{
+			newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s  %s %s ",
+				s.StatusKey.Render("?"),
+				s.StatusDim.Render(helpLabel),
+				s.StatusKey.Render("tab"),
+				s.StatusDim.Render("next round"),
+				s.StatusKey.Render("esc"),
+				s.StatusDim.Render("close"),
+				s.StatusKey.Render("r"),
+				s.StatusDim.Render("refresh"),
+				s.StatusKey.Render("q"),
+				s.StatusDim.Render("quit"),
+			)),
+			newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s ",
+				s.StatusKey.Render("?"),
+				s.StatusDim.Render(helpLabel),
+				s.StatusKey.Render("tab"),
+				s.StatusDim.Render("next round"),
+				s.StatusKey.Render("esc"),
+				s.StatusDim.Render("close"),
+			)),
+			newStatusSegment(fmt.Sprintf("%s %s ",
+				s.StatusKey.Render("?"),
+				s.StatusDim.Render(helpLabel),
+			)),
+		}
+	}
+
 	return []statusSegment{
-		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s  %s %s  %s %s  %s %s ",
+		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s  %s %s  %s %s  %s %s  %s %s ",
 			s.StatusKey.Render("?"),
 			s.StatusDim.Render(helpLabel),
+			s.StatusKey.Render("enter"),
+			s.StatusDim.Render("scorecard"),
 			s.StatusKey.Render("/"),
 			s.StatusDim.Render("search"),
 			s.StatusKey.Render("f"),
@@ -169,16 +200,18 @@ func buildRightCandidates(s Styles, searchMode bool, helpLabel string) []statusS
 		newStatusSegment(fmt.Sprintf("%s %s  %s %s  %s %s  %s %s ",
 			s.StatusKey.Render("?"),
 			s.StatusDim.Render(helpLabel),
-			s.StatusKey.Render("/"),
-			s.StatusDim.Render("search"),
+			s.StatusKey.Render("enter"),
+			s.StatusDim.Render("scorecard"),
 			s.StatusKey.Render("F"),
 			s.StatusDim.Render("favorites only"),
 			s.StatusKey.Render("q"),
 			s.StatusDim.Render("quit"),
 		)),
-		newStatusSegment(fmt.Sprintf("%s %s ",
+		newStatusSegment(fmt.Sprintf("%s %s  %s %s ",
 			s.StatusKey.Render("?"),
 			s.StatusDim.Render(helpLabel),
+			s.StatusKey.Render("/"),
+			s.StatusDim.Render("search"),
 		)),
 	}
 }

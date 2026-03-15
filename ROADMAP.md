@@ -338,12 +338,20 @@ Completion notes:
 
 ## Backlog (Future Versions)
 
-### v0.3.0 - Player Detail View
-- [ ] Select a player (Enter) to expand inline hole-by-hole scorecard
-- [ ] Show each hole: hole number, par, strokes, score type (eagle/birdie/par/bogey/double+)
-- [ ] Color-coded score types in the detail view
-- [ ] Collapse detail view (Enter or Esc) and continue scrolling
-- [ ] Round selector within detail view (tab between R1/R2/R3/R4)
+### v0.3.0 - Player Detail View [COMPLETE]
+- [x] Select a player (Enter) to expand inline hole-by-hole scorecard
+- [x] Show each hole: hole number, par, strokes, score type (eagle/birdie/par/bogey/double+)
+- [x] Color-coded score types in the detail view
+- [x] Collapse detail view (Enter or Esc) and continue scrolling
+- [x] Round selector within detail view (tab between R1/R2/R3/R4)
+
+Completion notes:
+
+- Status: complete (Mar 14, 2026)
+- Files touched: `internal/espn/types.go`, `internal/espn/client.go`, `internal/espn/client_test.go`, `internal/model/leaderboard.go`, `internal/model/leaderboard_test.go`, `internal/ui/detail.go`, `internal/ui/help.go`, `internal/ui/statusbar.go`, `internal/ui/styles.go`, `internal/ui/render_test.go`, `README.md`, `ROADMAP.md`
+- Tests run: `go test ./internal/espn ./internal/model ./internal/ui`, `go test ./...`
+- Behavior: pressing `Enter` on the selected player now expands an inline scorecard that shows per-hole par, strokes, and score type for the chosen round, with `Tab` cycling rounds and `Esc` or `Enter` collapsing the panel without disturbing leaderboard navigation
+- Follow-up: the next implementation target should come from the v0.4.0 release and distribution checklist
 
 ### v0.4.0 - Release & Distribution
 - [ ] Add `.goreleaser.yml` (cross-compile for macOS arm64/amd64, Linux arm64/amd64, Windows)

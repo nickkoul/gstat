@@ -586,6 +586,54 @@ func TestParsePlayer(t *testing.T) {
 	}
 }
 
+func TestParsePlayerParsesHoleByHoleDetails(t *testing.T) {
+	player := parsePlayer(Competitor{
+		ID:    "detail",
+		Order: 1,
+		Score: "-3",
+		Athlete: Athlete{
+			DisplayName: "Detail Player",
+		},
+		LineScores: []RoundData{
+			{
+				Period:       1,
+				Value:        69,
+				DisplayValue: "-3",
+				LineScores: []HoleData{
+					{Period: 10, Value: 5, DisplayValue: "5", ScoreType: &ScoreType{DisplayValue: "E"}},
+					{Period: 1, Value: 3, DisplayValue: "3", ScoreType: &ScoreType{DisplayValue: "-1"}},
+					{Period: 2, Value: 5, DisplayValue: "5", ScoreType: &ScoreType{DisplayValue: "+1"}},
+					{Period: 3, Value: 2, DisplayValue: "2", ScoreType: &ScoreType{DisplayValue: "-2"}},
+				},
+			},
+		},
+	}, 1, false)
+
+	if len(player.Rounds) == 0 || len(player.Rounds[0].Holes) != 4 {
+		t.Fatalf("round hole count = %d, want 4", len(player.Rounds[0].Holes))
+	}
+
+	first := player.Rounds[0].Holes[0]
+	if first.Number != 1 || first.Par != 4 || first.Strokes != 3 || first.ScoreType != "birdie" {
+		t.Fatalf("first hole = %+v, want hole 1 par 4 strokes 3 birdie", first)
+	}
+
+	second := player.Rounds[0].Holes[1]
+	if second.Number != 2 || second.Par != 4 || second.ScoreType != "bogey" {
+		t.Fatalf("second hole = %+v, want hole 2 par 4 bogey", second)
+	}
+
+	third := player.Rounds[0].Holes[2]
+	if third.Number != 3 || third.Par != 4 || third.ScoreType != "eagle" {
+		t.Fatalf("third hole = %+v, want hole 3 par 4 eagle", third)
+	}
+
+	last := player.Rounds[0].Holes[3]
+	if last.Number != 10 || last.Par != 5 || last.ScoreType != "par" {
+		t.Fatalf("last hole = %+v, want hole 10 par 5 par", last)
+	}
+}
+
 // --- Tier 1: Integration Test Against Fixture ---
 
 func TestParseTournamentFixture(t *testing.T) {

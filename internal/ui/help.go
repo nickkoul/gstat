@@ -3,12 +3,12 @@ package ui
 import "fmt"
 
 const (
-	normalHelpPanelLines = 5
+	normalHelpPanelLines = 6
 	searchHelpPanelLines = 4
 )
 
 // HelpPanelLineCount returns the number of rendered content lines in the help panel.
-func HelpPanelLineCount(searchMode bool) int {
+func HelpPanelLineCount(searchMode bool, _ bool) int {
 	if searchMode {
 		return searchHelpPanelLines
 	}
@@ -16,7 +16,7 @@ func HelpPanelLineCount(searchMode bool) int {
 }
 
 // RenderHelpPanel renders the expanded on-screen hotkey help.
-func RenderHelpPanel(width int, searchMode bool, roundMode string, favoritesOnly bool) string {
+func RenderHelpPanel(width int, searchMode bool, roundMode string, favoritesOnly bool, showDetail bool) string {
 	s := DefaultStyles()
 
 	var lines []string
@@ -32,10 +32,15 @@ func RenderHelpPanel(width int, searchMode bool, roundMode string, favoritesOnly
 		if favoritesOnly {
 			favoriteViewLabel = "all players"
 		}
+		detailAction := "scorecard"
+		if showDetail {
+			detailAction = "hide scorecard"
+		}
 		lines = []string{
 			s.HelpTitle.Render(" Hotkeys"),
 			fmt.Sprintf("  %s %s  %s %s  %s %s", s.StatusKey.Render("j/k"), s.StatusDim.Render("move"), s.StatusKey.Render("^d/^u"), s.StatusDim.Render("half page"), s.StatusKey.Render("g/G"), s.StatusDim.Render("top/bottom")),
 			fmt.Sprintf("  %s %s  %s %s  %s %s", s.StatusKey.Render("f"), s.StatusDim.Render("favorite"), s.StatusKey.Render("F"), s.StatusDim.Render(favoriteViewLabel), s.StatusKey.Render("/"), s.StatusDim.Render("search")),
+			fmt.Sprintf("  %s %s  %s %s", s.StatusKey.Render("enter"), s.StatusDim.Render(detailAction), s.StatusKey.Render("tab"), s.StatusDim.Render("next detail round")),
 			fmt.Sprintf("  %s %s  %s %s", s.StatusKey.Render("t"), s.StatusDim.Render(fmt.Sprintf("rounds (%s)", roundMode)), s.StatusKey.Render("?"), s.StatusDim.Render("toggle help")),
 			fmt.Sprintf("  %s %s", s.StatusKey.Render("q"), s.StatusDim.Render("quit")),
 		}

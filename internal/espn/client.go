@@ -6,6 +6,8 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -183,6 +185,7 @@ func parsePlayer(c Competitor, currentRound int, cutApplied bool) Player {
 				}
 				// For WD players with low value, we skip marking as played
 			}
+			rs.Holes = parseHoleScores(ls)
 		}
 		p.Rounds = append(p.Rounds, rs)
 	}
@@ -296,4 +299,81 @@ func extractCountryCode(href string) string {
 	}
 	last := parts[len(parts)-1]
 	return strings.TrimSuffix(last, ".png")
+}
+
+func parseHoleScores(round RoundData) []HoleScore {
+	if len(round.LineScores) == 0 {
+		return nil
+	}
+
+	holes := make([]HoleData, len(round.LineScores))
+	copy(holes, round.LineScores)
+	slices.SortFunc(holes, func(a, b HoleData) int {
+		return a.Period - b.Period
+	})
+
+	parsed := make([]HoleScore, 0, len(holes))
+	for _, hole := range holes {
+		holeScore := HoleScore{Number: hole.Period}
+		if hole.Period <= 0 {
+			continue
+		}
+
+		strokes := int(math.Round(hole.Value))
+		if strokes > 0 {
+			holeScore.Strokes = strokes
+			holeScore.Played = true
+		}
+
+		relative := ""
+		if hole.ScoreType != nil {
+			relative = strings.TrimSpace(strings.ToUpper(hole.ScoreType.DisplayValue))
+		}
+		if rel, ok := parseRelativeValue(relative); ok {
+			holeScore.ScoreType = classifyHoleScore(rel)
+			if holeScore.Played {
+				holeScore.Par = holeScore.Strokes - rel
+			}
+		}
+
+		parsed = append(parsed, holeScore)
+	}
+
+	if len(parsed) == 0 {
+		return nil
+	}
+
+	return parsed
+}
+
+func parseRelativeValue(score string) (int, bool) {
+	score = strings.TrimSpace(strings.ToUpper(score))
+	if score == "" || score == "-" {
+		return 0, false
+	}
+	if score == "E" {
+		return 0, true
+	}
+
+	value, err := strconv.Atoi(score)
+	if err != nil {
+		return 0, false
+	}
+
+	return value, true
+}
+
+func classifyHoleScore(relativeToPar int) string {
+	switch {
+	case relativeToPar <= -2:
+		return "eagle"
+	case relativeToPar == -1:
+		return "birdie"
+	case relativeToPar == 0:
+		return "par"
+	case relativeToPar == 1:
+		return "bogey"
+	default:
+		return "double+"
+	}
 }

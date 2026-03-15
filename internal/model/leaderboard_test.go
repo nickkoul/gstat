@@ -47,6 +47,34 @@ func testTournament(names ...string) *espn.Tournament {
 	return &espn.Tournament{Players: players}
 }
 
+func testTournamentWithDetails() *espn.Tournament {
+	return &espn.Tournament{Players: []espn.Player{
+		{
+			ID:              "scottie",
+			CanonicalRank:   1,
+			DisplayPosition: 1,
+			Name:            "Scottie Scheffler",
+			TotalScore:      "-7",
+			Thru:            "F",
+			Rounds: []espn.RoundScore{
+				{Round: 1, Played: true, ToPar: "-3", Holes: []espn.HoleScore{{Number: 1, Par: 4, Strokes: 3, ScoreType: "birdie", Played: true}}},
+				{Round: 2, Played: true, ToPar: "-4", Holes: []espn.HoleScore{{Number: 1, Par: 4, Strokes: 4, ScoreType: "par", Played: true}}},
+				{Round: 3},
+				{Round: 4},
+			},
+		},
+		{
+			ID:              "rory",
+			CanonicalRank:   2,
+			DisplayPosition: 2,
+			Name:            "Rory McIlroy",
+			TotalScore:      "-5",
+			Thru:            "F",
+			Rounds:          []espn.RoundScore{{Round: 1, Played: true, ToPar: "-5", Holes: []espn.HoleScore{{Number: 1, Par: 4, Strokes: 4, ScoreType: "par", Played: true}}}},
+		},
+	}}
+}
+
 type stubFavoritesStore struct {
 	loadFavorites map[string]bool
 	loadErr       error
@@ -637,5 +665,96 @@ func TestVisibleRowsKeepsStatusBarSpace(t *testing.T) {
 
 	if got := m.visibleRows(); got != 1 {
 		t.Fatalf("visibleRows = %d, want 1 for short terminals", got)
+	}
+}
+
+func TestHandleKeyEnterTogglesDetailView(t *testing.T) {
+	m := New()
+	m.height = 30
+	m.width = 120
+	m.tournament = testTournamentWithDetails()
+	m.syncVisibleState()
+
+	m = pressKey(t, m, keyWithCode(tea.KeyEnter))
+	if !m.showDetail {
+		t.Fatal("showDetail = false, want true")
+	}
+	if m.detailRound != 2 {
+		t.Fatalf("detailRound = %d, want latest played round 2", m.detailRound)
+	}
+
+	m = pressKey(t, m, keyWithCode(tea.KeyEnter))
+	if m.showDetail {
+		t.Fatal("showDetail = true, want false")
+	}
+}
+
+func TestHandleKeyTabCyclesDetailRound(t *testing.T) {
+	m := New()
+	m.height = 30
+	m.width = 120
+	m.tournament = testTournamentWithDetails()
+	m.syncVisibleState()
+	m.showDetail = true
+	m.detailRound = 2
+
+	m = pressKey(t, m, keyWithCode(tea.KeyTab))
+	if m.detailRound != 3 {
+		t.Fatalf("detailRound = %d, want 3", m.detailRound)
+	}
+
+	m = pressKey(t, m, keyWithCode(tea.KeyTab))
+	m = pressKey(t, m, keyWithCode(tea.KeyTab))
+	if m.detailRound != 1 {
+		t.Fatalf("detailRound = %d, want wrapped to 1", m.detailRound)
+	}
+}
+
+func TestHandleKeyEscapeClosesDetailView(t *testing.T) {
+	m := New()
+	m.height = 30
+	m.width = 120
+	m.tournament = testTournamentWithDetails()
+	m.syncVisibleState()
+	m.showDetail = true
+	m.detailRound = 2
+
+	m = pressKey(t, m, keyWithCode(tea.KeyEscape))
+	if m.showDetail {
+		t.Fatal("showDetail = true, want false")
+	}
+}
+
+func TestRenderLeaderboardShowsInlineDetailPanel(t *testing.T) {
+	m := New()
+	m.height = 30
+	m.width = 120
+	m.tournament = testTournamentWithDetails()
+	m.syncVisibleState()
+	m.showDetail = true
+	m.detailRound = 2
+
+	out := m.renderLeaderboard()
+	if !strings.Contains(out, "Scorecard") {
+		t.Fatalf("expected detail panel in leaderboard output, got %q", out)
+	}
+	if !strings.Contains(out, "[R2]") {
+		t.Fatalf("expected active detail round tab, got %q", out)
+	}
+}
+
+func TestVisibleRowsShrinkWhenDetailOpen(t *testing.T) {
+	m := New()
+	m.height = 30
+	m.width = 120
+	m.tournament = testTournamentWithDetails()
+	m.syncVisibleState()
+	closedRows := m.visibleRows()
+	m.showDetail = true
+	m.detailRound = 2
+	openRows := m.visibleRows()
+
+	if openRows >= closedRows {
+		t.Fatalf("openRows = %d, want less than %d when detail is open", openRows, closedRows)
 	}
 }

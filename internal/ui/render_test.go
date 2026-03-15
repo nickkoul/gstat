@@ -379,12 +379,13 @@ func TestRenderCutLine(t *testing.T) {
 
 func TestRenderStatusBar(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 25*time.Second, 160, "", "", false, false, "strokes", false)
+	out := ui.RenderStatusBar(now, 25*time.Second, 160, "", "", false, false, "strokes", false, false)
 
 	mustContain(t, out, "refresh countdown", "25s")
 	mustContain(t, out, "quit hint", "quit")
 	mustContain(t, out, "refresh hint", "refresh")
 	mustContain(t, out, "search hint", "search")
+	mustContain(t, out, "scorecard hint", "scorecard")
 	mustContain(t, out, "round mode", "strokes")
 	mustContain(t, out, "round label", "Rounds")
 	mustContain(t, out, "favorite hint", "favorite")
@@ -394,20 +395,20 @@ func TestRenderStatusBar(t *testing.T) {
 
 func TestRenderStatusBarWithError(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 120, "connection refused", "", false, false, "strokes", false)
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "connection refused", "", false, false, "strokes", false, false)
 
 	mustContain(t, out, "error message", "connection refused")
 }
 
 func TestRenderStatusBarZeroTime(t *testing.T) {
-	out := ui.RenderStatusBar(time.Time{}, 0, 120, "", "", false, false, "strokes", false)
+	out := ui.RenderStatusBar(time.Time{}, 0, 120, "", "", false, false, "strokes", false, false)
 
 	mustContain(t, out, "fetching message", "Fetching")
 }
 
 func TestRenderStatusBarSearchMode(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "schef", true, false, "to par", false)
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "schef", true, false, "to par", false, false)
 
 	mustContain(t, out, "filter query", "/schef")
 	mustContain(t, out, "search mode", "search")
@@ -419,16 +420,25 @@ func TestRenderStatusBarSearchMode(t *testing.T) {
 
 func TestRenderStatusBarHelpVisible(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "", false, true, "to par", false)
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "", false, true, "to par", false, false)
 
 	mustContain(t, out, "hide hint label", "hide hints")
 }
 
 func TestRenderStatusBarNarrowWidthKeepsHelpHint(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 60, "", "scheffler", false, false, "to par", false)
+	out := ui.RenderStatusBar(now, 10*time.Second, 60, "", "scheffler", false, false, "to par", false, false)
 
 	mustContain(t, out, "show hint survives narrow width", "show hints")
+}
+
+func TestRenderStatusBarDetailVisible(t *testing.T) {
+	now := time.Now()
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "", false, false, "to par", false, true)
+
+	mustContain(t, out, "detail round hint", "next round")
+	mustContain(t, out, "detail close hint", "close")
+	mustNotContain(t, out, "hide scorecard open hint", "scorecard")
 }
 
 func TestRenderPlayerRowToParMode(t *testing.T) {
@@ -489,25 +499,33 @@ func TestRenderPlayerRowUpdateMarkers(t *testing.T) {
 }
 
 func TestRenderHelpPanelNormalMode(t *testing.T) {
-	out := ui.RenderHelpPanel(80, false, "to par", false)
+	out := ui.RenderHelpPanel(80, false, "to par", false, false)
 
 	mustContain(t, out, "title", "Hotkeys")
 	mustContain(t, out, "move hint", "move")
 	mustContain(t, out, "favorite hint", "favorite")
 	mustContain(t, out, "favorites toggle hint", "favorites only")
 	mustContain(t, out, "search hint", "search")
+	mustContain(t, out, "detail hint", "scorecard")
+	mustContain(t, out, "detail round hint", "next detail round")
 	mustContain(t, out, "round mode hint", "rounds (to par)")
 	mustContain(t, out, "toggle help hint", "toggle help")
 }
 
 func TestRenderHelpPanelFavoritesOnlyMode(t *testing.T) {
-	out := ui.RenderHelpPanel(80, false, "to par", true)
+	out := ui.RenderHelpPanel(80, false, "to par", true, false)
 
 	mustContain(t, out, "favorites toggle label in active mode", "all players")
 }
 
+func TestRenderHelpPanelDetailVisible(t *testing.T) {
+	out := ui.RenderHelpPanel(80, false, "to par", false, true)
+
+	mustContain(t, out, "detail toggle label in active mode", "hide scorecard")
+}
+
 func TestRenderHelpPanelSearchMode(t *testing.T) {
-	out := ui.RenderHelpPanel(80, true, "to par", false)
+	out := ui.RenderHelpPanel(80, true, "to par", false, false)
 
 	mustContain(t, out, "title", "Hotkeys")
 	mustContain(t, out, "typing hint", "filter players")
@@ -518,8 +536,69 @@ func TestRenderHelpPanelSearchMode(t *testing.T) {
 
 func TestRenderStatusBarFavoritesOnly(t *testing.T) {
 	now := time.Now()
-	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "", false, false, "to par", true)
+	out := ui.RenderStatusBar(now, 10*time.Second, 120, "", "", false, false, "to par", true, false)
 
 	mustContain(t, out, "favorites view label", "favorites")
 	mustContain(t, out, "favorites only hint", "favorites only")
+}
+
+func TestRenderPlayerDetail(t *testing.T) {
+	player := espn.Player{
+		ID: "detail", CanonicalRank: 1, DisplayPosition: 1,
+		Name: "Detail Player", TotalScore: "-7", Thru: "F",
+		Rounds: []espn.RoundScore{{
+			Round: 1, Played: true, Strokes: 65, ToPar: "-7",
+			Holes: []espn.HoleScore{
+				{Number: 1, Par: 4, Strokes: 3, ScoreType: "birdie", Played: true},
+				{Number: 2, Par: 5, Strokes: 3, ScoreType: "eagle", Played: true},
+				{Number: 10, Par: 4, Strokes: 5, ScoreType: "bogey", Played: true},
+				{Number: 11, Par: 4, Strokes: 6, ScoreType: "double+", Played: true},
+			},
+		}},
+	}
+
+	out := stripANSI(ui.RenderPlayerDetail(player, 140, 1))
+	mustContain(t, out, "detail title", "Scorecard")
+	mustContain(t, out, "player name", "Detail Player")
+	mustContain(t, out, "active round tab", "[R1]")
+	mustContain(t, out, "hole header row", "|HOLE|")
+	mustContain(t, out, "score row label", "|SCR ")
+	mustContain(t, out, "running to par row label", "|RUN ")
+	mustContain(t, out, "birdie marker", "(3)")
+	mustContain(t, out, "eagle marker", "((3))")
+	mustContain(t, out, "bogey marker", "[5]")
+	mustContain(t, out, "double bogey marker", "[[6]]")
+	mustContain(t, out, "out summary", "| OUT |")
+	mustContain(t, out, "total summary", "| TOT |")
+	mustContain(t, out, "front nine running total", "|   -1|   -3")
+	mustContain(t, out, "round running total", "|   -2|    E|")
+}
+
+func TestRenderPlayerDetailWithoutHoleData(t *testing.T) {
+	player := espn.Player{
+		ID: "detail", Name: "Detail Player", TotalScore: "E", Thru: "-",
+		Rounds: []espn.RoundScore{{Round: 1}},
+	}
+
+	out := stripANSI(ui.RenderPlayerDetail(player, 80, 1))
+	mustContain(t, out, "missing detail data message", "No hole-by-hole data for Round 1")
+}
+
+func TestRenderPlayerDetailNarrowLayoutSplitsFrontAndBack(t *testing.T) {
+	player := espn.Player{
+		ID: "detail", Name: "Detail Player", TotalScore: "E", Thru: "12",
+		Rounds: []espn.RoundScore{{
+			Round: 1, Played: true,
+			Holes: []espn.HoleScore{
+				{Number: 1, Par: 4, Strokes: 4, ScoreType: "par", Played: true},
+				{Number: 10, Par: 4, Strokes: 3, ScoreType: "birdie", Played: true},
+			},
+		}},
+	}
+
+	out := stripANSI(ui.RenderPlayerDetail(player, 90, 1))
+	mustContain(t, out, "front nine label", "Front nine")
+	mustContain(t, out, "back nine label", "Back nine")
+	mustContain(t, out, "out summary header", "| OUT |")
+	mustContain(t, out, "in summary header", "| IN  |")
 }

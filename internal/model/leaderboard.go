@@ -68,6 +68,8 @@ type Model struct {
 	filterQuery   string
 	favoritesOnly bool
 	searchMode    bool
+	showDetail    bool
+	detailRound   int
 	roundMode     roundScoreDisplayMode
 	showHelp      bool
 
@@ -90,6 +92,7 @@ func New() Model {
 		favorites:       make(map[string]bool),
 		refreshInterval: defaultRefreshInterval,
 		loading:         true,
+		detailRound:     1,
 		roundMode:       roundScoreDisplayToPar,
 	}
 }
@@ -182,7 +185,7 @@ func (m Model) renderContent() string {
 	s += "\n"
 
 	if m.showHelp {
-		s += ui.RenderHelpPanel(m.width, m.searchMode, string(m.roundMode), m.favoritesOnly)
+		s += ui.RenderHelpPanel(m.width, m.searchMode, string(m.roundMode), m.favoritesOnly, m.showDetail)
 		s += "\n"
 	}
 
@@ -214,7 +217,7 @@ func (m Model) renderContent() string {
 	// Only show the error in the status bar if we also have tournament data
 	// (i.e., a refresh failed but we still have stale data to show)
 	statusErr := m.statusError()
-	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr, m.filterQuery, m.searchMode, m.showHelp, string(m.roundMode), m.favoritesOnly)
+	s += ui.RenderStatusBar(m.lastUpdate, nextRefresh, m.width, statusErr, m.filterQuery, m.searchMode, m.showHelp, string(m.roundMode), m.favoritesOnly, m.showDetail)
 
 	return s
 }
@@ -294,6 +297,11 @@ func (m Model) renderLeaderboard() string {
 			m.isFavorite(p.ID),
 		)
 		s += "\n"
+
+		if m.showDetail && p.ID == m.selectedID {
+			s += ui.RenderPlayerDetail(p, m.width, m.detailRound)
+			s += "\n"
+		}
 	}
 
 	// Scroll indicator
@@ -368,6 +376,22 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.loading = true
 		m.lastError = ""
 		return m, m.fetchData()
+
+	case "enter":
+		m.toggleDetail()
+		return m, nil
+
+	case "esc":
+		if m.showDetail {
+			m.showDetail = false
+			return m, nil
+		}
+
+	case "tab":
+		if m.showDetail {
+			m.cycleDetailRound(1)
+			return m, nil
+		}
 
 	case "t":
 		m.toggleRoundMode()
@@ -760,12 +784,14 @@ func (m *Model) syncVisibleState() {
 	if len(players) == 0 {
 		m.selectedID = ""
 		m.scrollPos = 0
+		m.showDetail = false
 		return
 	}
 
 	if playerIndexByID(players, m.selectedID) < 0 {
 		m.selectedID = players[0].ID
 	}
+	m.normalizeDetailRound()
 
 	m.clampScroll()
 	m.ensureSelectionVisible()
@@ -824,6 +850,7 @@ func (m *Model) moveSelection(delta int) {
 	}
 
 	m.selectedID = players[selectedIdx].ID
+	m.normalizeDetailRound()
 	m.ensureSelectionVisible()
 }
 
@@ -833,6 +860,7 @@ func (m *Model) selectFirstVisible() {
 		return
 	}
 	m.selectedID = players[0].ID
+	m.normalizeDetailRound()
 	m.ensureSelectionVisible()
 }
 
@@ -842,6 +870,7 @@ func (m *Model) selectLastVisible() {
 		return
 	}
 	m.selectedID = players[len(players)-1].ID
+	m.normalizeDetailRound()
 	m.ensureSelectionVisible()
 }
 
@@ -872,7 +901,7 @@ func (m *Model) toggleFavoriteSelected() {
 }
 
 func (m Model) visibleRows() int {
-	visibleRows := m.height - 11 - m.helpPanelHeight()
+	visibleRows := m.height - 11 - m.helpPanelHeight() - m.detailPanelHeight()
 	if visibleRows < 1 {
 		visibleRows = 1
 	}
@@ -883,7 +912,18 @@ func (m Model) helpPanelHeight() int {
 	if !m.showHelp {
 		return 0
 	}
-	return ui.HelpPanelLineCount(m.searchMode) + 1
+	return ui.HelpPanelLineCount(m.searchMode, m.showDetail) + 1
+}
+
+func (m Model) detailPanelHeight() int {
+	if !m.showDetail {
+		return 0
+	}
+	player, ok := m.selectedPlayer()
+	if !ok {
+		return 0
+	}
+	return ui.DetailPanelHeight(player, m.width, m.detailRound)
 }
 
 func (m *Model) toggleRoundMode() {
@@ -910,4 +950,81 @@ func formatFavoritesError(action string, err error) string {
 		return ""
 	}
 	return fmt.Sprintf("Favorites %s failed: %v", action, err)
+}
+
+func (m Model) selectedPlayer() (espn.Player, bool) {
+	players := m.visiblePlayers()
+	selectedIdx := playerIndexByID(players, m.selectedID)
+	if selectedIdx < 0 {
+		return espn.Player{}, false
+	}
+	return players[selectedIdx], true
+}
+
+func (m *Model) toggleDetail() {
+	if m.showDetail {
+		m.showDetail = false
+		return
+	}
+
+	player, ok := m.selectedPlayer()
+	if !ok {
+		return
+	}
+
+	m.showDetail = true
+	m.detailRound = defaultDetailRound(player)
+	m.syncVisibleState()
+}
+
+func (m *Model) cycleDetailRound(delta int) {
+	if !m.showDetail {
+		return
+	}
+
+	player, ok := m.selectedPlayer()
+	if !ok {
+		return
+	}
+
+	totalRounds := max(4, len(player.Rounds))
+	next := m.detailRound + delta
+	if next > totalRounds {
+		next = 1
+	}
+	if next < 1 {
+		next = totalRounds
+	}
+	if next == m.detailRound {
+		return
+	}
+	m.detailRound = next
+	m.syncVisibleState()
+}
+
+func (m *Model) normalizeDetailRound() {
+	if !m.showDetail {
+		return
+	}
+	player, ok := m.selectedPlayer()
+	if !ok {
+		return
+	}
+	totalRounds := max(4, len(player.Rounds))
+	if m.detailRound < 1 || m.detailRound > totalRounds {
+		m.detailRound = defaultDetailRound(player)
+	}
+}
+
+func defaultDetailRound(player espn.Player) int {
+	for i := len(player.Rounds) - 1; i >= 0; i-- {
+		round := player.Rounds[i]
+		if round.Played || len(round.Holes) > 0 {
+			return i + 1
+		}
+	}
+	if len(player.Rounds) > 0 {
+		return 1
+	}
+	return 1
 }

@@ -46,6 +46,7 @@ go build -o gstat .
 - Vim-style player search with `/`
 - Round columns default to to-par; press `t` to toggle strokes view
 - Select rows with vim-style navigation, bold favorites with `f`, toggle a favorites-only view with `F`, and keep favorites across restarts
+- Press `Enter` on the selected player to open an inline hole-by-hole scorecard, then use `Tab` to cycle rounds and `Esc` to close it
 - `CHG` shows position diff versus the previous round as `^n`, `˅n`, or `E`
 - Live refresh markers flag changed rows as `!` (score), `^` (standing), or `+` (both)
 - Toggle an expanded hotkey help panel with `?`
@@ -64,10 +65,12 @@ go build -o gstat .
 | `/` | Start player search |
 | `f` | Toggle favorite on the selected player |
 | `F` | Toggle favorites-only view |
+| `Enter` | Toggle the selected player's inline scorecard |
+| `Tab` | Cycle detail view rounds |
 | `t` | Toggle round columns between strokes and to par |
 | `?` | Toggle expanded hotkey help |
-| `Enter` | Apply current search |
-| `Esc` | Clear search |
+| `Enter` (search) | Apply current search |
+| `Esc` | Close scorecard or clear search |
 | `r` | Force refresh |
 | `q` / `Ctrl+C` | Quit |
 

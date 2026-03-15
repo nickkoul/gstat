@@ -71,12 +71,23 @@ type Styles struct {
 	CutLine   lipgloss.Style
 
 	// Status bar
-	StatusBar   lipgloss.Style
-	StatusKey   lipgloss.Style
-	StatusValue lipgloss.Style
-	StatusDim   lipgloss.Style
-	HelpPanel   lipgloss.Style
-	HelpTitle   lipgloss.Style
+	StatusBar       lipgloss.Style
+	StatusKey       lipgloss.Style
+	StatusValue     lipgloss.Style
+	StatusDim       lipgloss.Style
+	HelpPanel       lipgloss.Style
+	HelpTitle       lipgloss.Style
+	DetailTitle     lipgloss.Style
+	DetailTab       lipgloss.Style
+	DetailTabActive lipgloss.Style
+	DetailLabel     lipgloss.Style
+	DetailValue     lipgloss.Style
+	DetailMuted     lipgloss.Style
+	DetailEagle     lipgloss.Style
+	DetailBirdie    lipgloss.Style
+	DetailPar       lipgloss.Style
+	DetailBogey     lipgloss.Style
+	DetailDouble    lipgloss.Style
 
 	// General
 	App     lipgloss.Style
@@ -221,6 +232,45 @@ func DefaultStyles() Styles {
 		HelpTitle: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(colorWhite),
+
+		DetailTitle: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(colorWhite),
+
+		DetailTab: lipgloss.NewStyle().
+			Foreground(colorGray),
+
+		DetailTabActive: lipgloss.NewStyle().
+			Foreground(colorBlue).
+			Bold(true),
+
+		DetailLabel: lipgloss.NewStyle().
+			Foreground(colorDimGray),
+
+		DetailValue: lipgloss.NewStyle().
+			Foreground(colorWhite),
+
+		DetailMuted: lipgloss.NewStyle().
+			Foreground(colorGray),
+
+		DetailEagle: lipgloss.NewStyle().
+			Foreground(colorPurple).
+			Bold(true),
+
+		DetailBirdie: lipgloss.NewStyle().
+			Foreground(colorBirdie).
+			Bold(true),
+
+		DetailPar: lipgloss.NewStyle().
+			Foreground(colorPar),
+
+		DetailBogey: lipgloss.NewStyle().
+			Foreground(colorBogey).
+			Bold(true),
+
+		DetailDouble: lipgloss.NewStyle().
+			Foreground(colorDouble).
+			Bold(true),
 
 		// General
 		App: lipgloss.NewStyle(),

@@ -189,4 +189,14 @@ type RoundScore struct {
 	Strokes int    // 0 if not played
 	ToPar   string // e.g. "-3", "+1", "E", ""
 	Played  bool
+	Holes   []HoleScore
+}
+
+// HoleScore is a simplified per-hole score within a round.
+type HoleScore struct {
+	Number    int
+	Par       int
+	Strokes   int
+	ScoreType string // eagle, birdie, par, bogey, double+, or ""
+	Played    bool
 }
