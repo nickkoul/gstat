@@ -356,9 +356,9 @@ Completion notes:
 ### v0.4.0 - Release & Distribution
 - [x] Add `.goreleaser.yml` (cross-compile for macOS arm64/amd64, Linux arm64/amd64, Windows)
 - [x] Add `.github/workflows/release.yml` (GitHub Actions triggered on git tag push)
-- [ ] Create `nickkoul/homebrew-tap` repo on GitHub
+- [x] Create `nickkoul/homebrew-tap` repo on GitHub
 - [x] Configure Homebrew formula generation in GoReleaser config
-- [ ] Tag and publish first release
+- [x] Tag and publish first release
 - [ ] Verify install methods: `brew install nickkoul/tap/gstat`, direct download, `go install`
 - [x] Document install methods in README
 
@@ -376,7 +376,11 @@ Progress notes:
 - Files touched: `.goreleaser.yml`, `.github/workflows/release.yml`, `DEVELOPMENT.md`, `ROADMAP.md`
 - Checks run: YAML syntax validation
 - Behavior: GoReleaser now generates a `Formula/gstat.rb` update for `nickkoul/homebrew-tap` and the release workflow forwards a dedicated `HOMEBREW_TAP_GITHUB_TOKEN` secret for cross-repo writes
-- Follow-up: create the `nickkoul/homebrew-tap` repository, add the `HOMEBREW_TAP_GITHUB_TOKEN` secret, then verify `brew install nickkoul/tap/gstat` from a tagged release
+- Completed feature: tap bootstrap + first automated release (Mar 14, 2026)
+- Files touched: `README.md`, `ROADMAP.md`
+- Checks run: end-to-end release verification via GitHub Actions release assets and `brew install nickkoul/tap/gstat`
+- Behavior: `nickkoul/homebrew-tap` now exists, tagged releases update the tap formula automatically, and Homebrew installation is working from the published tap
+- Follow-up: verify `go install github.com/nickkoul/gstat@<tag>` against the release flow, then v0.4.0 release/distribution work is complete
 
 ### v0.5.0 - Tournament Selector
 - [ ] Tournament picker from ESPN season calendar (48 events)

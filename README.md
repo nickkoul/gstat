@@ -22,6 +22,19 @@ Live golf tournament leaderboard in your terminal.
 
 ## Install
 
+### Homebrew
+
+```bash
+brew install nickkoul/tap/gstat
+```
+
+If you prefer to add the tap first:
+
+```bash
+brew tap nickkoul/tap
+brew install gstat
+```
+
 ### Go install
 
 ```bash
@@ -44,6 +57,8 @@ On macOS, unsigned binaries may be quarantined on first download. If Gatekeeper 
 xattr -d com.apple.quarantine ./gstat
 ./gstat
 ```
+
+If you want `gstat` available on your shell `PATH`, move the extracted binary into a directory such as `/opt/homebrew/bin` or `/usr/local/bin`.
 
 ### Build from source
 
