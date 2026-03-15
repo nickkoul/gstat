@@ -1,24 +1,8 @@
 # gstat
 
-Live golf tournament leaderboard in your terminal.
+Live golf tournament leaderboard in your terminal. Allows favoriting players, seeing detailed score cards, and searching for players.
 
-```
- THE PLAYERS Championship                    Round 2 - Play Complete
- Mar 12, 2026 - Mar 15, 2026
- ─────────────────────────────────────────────────────────────────────
-    POS   CHG  PLAYER                   CTRY    TOT   R1   R2   R3   R4  THRU
- ─────────────────────────────────────────────────────────────────────────────
->   1     ^1   Ludvig Åberg             SWE    -12   69   63    -    -     F
-    T2    ˅1   Xander Schauffele        USA    -10   69   65    -    -     F
- *  T2    E    Scottie Scheffler        USA    -10   67   67    -    -     F
-      4    ^3   Cameron Young           USA     -9   68   67    -    -     F
-    T5    E    Corey Conners            CAN     -8   69   67    -    -    12
-    T5    ˅2   Justin Thomas            USA     -8   68   68    -    -     F
- ──────────────────────────── CUT ────────────────────────────────
-     CUT   Adam Schenk              USA     +3   77   70    -    -     F
-
- Updated 10:32 PM  Next 28s              / search  f favorite  F favorites  q quit
-```
+![gstat demo](docs/gstat-demo.gif)
 
 ## Install
 
