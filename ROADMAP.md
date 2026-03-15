@@ -354,13 +354,21 @@ Completion notes:
 - Follow-up: the next implementation target should come from the v0.4.0 release and distribution checklist
 
 ### v0.4.0 - Release & Distribution
-- [ ] Add `.goreleaser.yml` (cross-compile for macOS arm64/amd64, Linux arm64/amd64, Windows)
+- [x] Add `.goreleaser.yml` (cross-compile for macOS arm64/amd64, Linux arm64/amd64, Windows)
 - [ ] Add `.github/workflows/release.yml` (GitHub Actions triggered on git tag push)
 - [ ] Create `nickkoul/homebrew-tap` repo on GitHub
 - [ ] Configure Homebrew formula generation in GoReleaser config
 - [ ] Tag and publish first release
 - [ ] Verify install methods: `brew install nickkoul/tap/gstat`, direct download, `go install`
 - [ ] Document install methods in README
+
+Progress notes:
+
+- Completed feature: `.goreleaser.yml` (Mar 14, 2026)
+- Files touched: `.goreleaser.yml`, `.gitignore`, `DEVELOPMENT.md`, `ROADMAP.md`
+- Checks run: `go test ./...`, `go build ./...`
+- Behavior: GoReleaser now builds static release artifacts for macOS amd64/arm64, Linux amd64/arm64, and Windows amd64, packages archives with `README.md` and `LICENSE`, and emits a shared `checksums.txt`
+- Follow-up: the next roadmap item is wiring this config into a GitHub Actions release workflow on tag pushes
 
 ### v0.5.0 - Tournament Selector
 - [ ] Tournament picker from ESPN season calendar (48 events)

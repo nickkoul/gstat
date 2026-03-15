@@ -195,6 +195,57 @@ go build ./...
 go vet ./... && go test ./... && go build ./...
 ```
 
+## Release Dry Run
+
+Install GoReleaser locally, then run a snapshot build to verify the release config without publishing anything:
+
+```bash
+goreleaser release --snapshot --clean
+```
+
+This uses `.goreleaser.yml` to build `gstat` for macOS amd64/arm64, Linux amd64/arm64, and Windows amd64, then packages the artifacts in `dist/`.
+
+Do not commit `dist/`; it is generated release output and is ignored by git.
+
+## Manual Release Workflow
+
+Until the GitHub Actions release workflow exists, publish releases manually from a clean checkout.
+
+1. Verify the repo is ready:
+
+```bash
+go test ./...
+go build ./...
+goreleaser release --snapshot --clean
+git status
+```
+
+2. Commit any release-ready source changes:
+
+```bash
+git add .
+git commit -m "prepare v0.1.0 release"
+git push origin main
+```
+
+3. Create an annotated SemVer tag for the current commit and push it to GitHub:
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+The commit push uploads the code; the tag push uploads the `v0.1.0` label that marks which exact commit should become the release.
+
+4. Export a GitHub token with permission to create releases, then publish:
+
+```bash
+export GITHUB_TOKEN=YOUR_TOKEN
+goreleaser release --clean
+```
+
+GoReleaser will read the current tag, build the release artifacts into `dist/`, create the matching GitHub Release, and upload the archives plus `checksums.txt`.
+
 ## Adding a New Feature
 
 General workflow:

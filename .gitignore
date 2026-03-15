@@ -12,6 +12,9 @@ gstat
 # Output of go coverage
 *.out
 
+# Release artifacts
+dist/
+
 # Go workspace
 go.work
 go.work.sum
