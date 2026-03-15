@@ -355,7 +355,7 @@ Completion notes:
 
 ### v0.4.0 - Release & Distribution
 - [x] Add `.goreleaser.yml` (cross-compile for macOS arm64/amd64, Linux arm64/amd64, Windows)
-- [ ] Add `.github/workflows/release.yml` (GitHub Actions triggered on git tag push)
+- [x] Add `.github/workflows/release.yml` (GitHub Actions triggered on git tag push)
 - [ ] Create `nickkoul/homebrew-tap` repo on GitHub
 - [ ] Configure Homebrew formula generation in GoReleaser config
 - [ ] Tag and publish first release
@@ -368,7 +368,11 @@ Progress notes:
 - Files touched: `.goreleaser.yml`, `.gitignore`, `DEVELOPMENT.md`, `ROADMAP.md`
 - Checks run: `go test ./...`, `go build ./...`
 - Behavior: GoReleaser now builds static release artifacts for macOS amd64/arm64, Linux amd64/arm64, and Windows amd64, packages archives with `README.md` and `LICENSE`, and emits a shared `checksums.txt`
-- Follow-up: the next roadmap item is wiring this config into a GitHub Actions release workflow on tag pushes
+- Completed feature: `.github/workflows/release.yml` (Mar 14, 2026)
+- Files touched: `.github/workflows/release.yml`, `DEVELOPMENT.md`, `ROADMAP.md`
+- Checks run: YAML syntax validation
+- Behavior: pushing a `v*` tag now runs GoReleaser in GitHub Actions with `contents: write`, so tagged releases can publish without requiring a local `GITHUB_TOKEN`
+- Follow-up: the next roadmap item is creating `nickkoul/homebrew-tap` and wiring Homebrew formula generation into GoReleaser
 
 ### v0.5.0 - Tournament Selector
 - [ ] Tournament picker from ESPN season calendar (48 events)

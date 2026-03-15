@@ -209,7 +209,7 @@ Do not commit `dist/`; it is generated release output and is ignored by git.
 
 ## Manual Release Workflow
 
-Until the GitHub Actions release workflow exists, publish releases manually from a clean checkout.
+Use this fallback flow when you intentionally want to publish releases from a clean local checkout instead of GitHub Actions.
 
 1. Verify the repo is ready:
 
@@ -245,6 +245,19 @@ goreleaser release --clean
 ```
 
 GoReleaser will read the current tag, build the release artifacts into `dist/`, create the matching GitHub Release, and upload the archives plus `checksums.txt`.
+
+## Automated Release Workflow
+
+Pushing a SemVer tag that matches `v*` now triggers `.github/workflows/release.yml`, which runs GoReleaser on GitHub Actions and publishes the release automatically.
+
+```bash
+git tag -a v0.1.1 -m "v0.1.1"
+git push origin v0.1.1
+```
+
+The workflow checks out the full git history, uses the Go version from `go.mod`, and runs `goreleaser release --clean` with the repository's built-in `GITHUB_TOKEN`.
+
+Use the manual local workflow above only when you intentionally want to publish from your machine instead of CI.
 
 ## Adding a New Feature
 
